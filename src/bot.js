@@ -6,6 +6,7 @@ import actionCommands from "./commands.js";
 import startServer from "./httpServer.js";
 
 startServer();
+/*
 let commands = [];
 
 const bottedChannel = "the_henzz"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
@@ -178,3 +179,5 @@ connection.connect((err) => {
     });
   });
 });
+
+*/

@@ -1,0 +1,11 @@
+body {
+    padding: 15px;
+}
+
+.col-6 {
+    width: 80%;
+}
+
+.card {
+    margin: 10px;
+}
