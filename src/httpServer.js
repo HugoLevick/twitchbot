@@ -11,13 +11,23 @@ export default function startServer() {
   const port = 8000;
 
   const requestListener = function (req, res) {
-    res.setHeader("Content-Type", "text/html");
-    res.writeHead(200);
-    res.end(indexFile);
+    console.log(__dirname + "/.." + (req.url === "/" ? "/index.html" : req.url));
+    fs.readFile(__dirname + "/.." + (req.url === "/" ? "/index.html" : req.url))
+      .then((contents) => {
+        res.setHeader("Content-Type", "text/html");
+        res.writeHead(200);
+        res.end(contents);
+      })
+      .catch((err) => {
+        console.error(`Could not read ${req.url} file: ${err}`);
+      });
   };
 
   const server = http.createServer(requestListener);
-
+  server.listen(port, host, () => {
+    console.log(`Server is running on http://${host}:${port}`);
+  });
+  /*
   let indexFile;
 
   fs.readFile(__dirname + "/../index.html")
@@ -31,4 +41,5 @@ export default function startServer() {
       console.error(`Could not read index.html file: ${err}`);
       process.exit(1);
     });
+    */
 }
