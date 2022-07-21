@@ -90,16 +90,10 @@
           <div class="position-sticky pt-3 sidebar-sticky">
             <ul class="nav flex-column">
               <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">
-                  <span data-feather="home" class="align-text-bottom"></span>
-                  Check-In
-                </a>
+                <a class="nav-link active" aria-current="page" href="/"> Check-In </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">
-                  <span data-feather="home" class="align-text-bottom"></span>
-                  Create Teams
-                </a>
+                <a class="nav-link active" aria-current="page" href="/teams/teams.html"> Create Teams </a>
               </li>
             </ul>
           </div>
@@ -111,7 +105,7 @@
           </div>
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
             <h2>People who signed up</h2>
-            <button type="button" class="btn btn-sm btn-outline-secondary">Reload</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadTable()">Reload</button>
           </div>
           <div class="table-responsive">
             <table class="table table-striped table-sm">
@@ -119,16 +113,18 @@
                 <tr>
                   <th scope="col">Username</th>
                   <th scope="col">Checked In</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody id="checkintable">
                 <tr>
-                  <td>ElvynCalderon</td>
-                  <td>Yes</td>
-                </tr>
-                <tr>
-                  <td>h_levick</td>
-                  <td>No</td>
+                  <td>There's no one here</td>
+                  <td>-</td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" onclick="kickPlayer()">
+                      KICK
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -136,6 +132,7 @@
         </main>
       </div>
     </div>
-    <script src="src/api.js"></script>
+    <script src="src/loadCheckedPeople.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   </body>
 </html>
