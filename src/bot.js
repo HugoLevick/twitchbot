@@ -39,7 +39,9 @@ export let utilities = {
     deleteCommand: deleteCommand,
     addPersonToTourney: addPersonToTourney,
     removePersonFromTourney: removePersonFromTourney,
+    clearTourney: clearTourney,
     checkIn: checkIn,
+    checkOut: checkOut,
     toggleCheckIns: toggleCheckIns,
   },
 };
@@ -183,15 +185,26 @@ async function checkIn(username) {
   else return false;
 }
 
+async function checkOut(username) {
+  const response = await updateDatabase("Check_In", "checkin", 0, "username", `"${username}"`);
+  if (response.affectedRows > 0) return true;
+  else return false;
+}
+
 async function removePersonFromTourney(username) {
   return await deleteFromDatabase("Check_In", "username", `"${username}"`);
+}
+
+async function clearTourney() {
+  await queryDatabase("TRUNCATE check_in");
+  return true;
 }
 
 async function deleteFromDatabase(table, field, value) {
   return await new Promise((res) => {
     connection.query(`DELETE FROM ${table} WHERE ${field}=${value};`, (err, result) => {
       if (err) throw err;
-      if (result.affectedRows === 1) res(true);
+      if (result.affectedRows !== 0) res(true);
       else res(false);
     });
   });

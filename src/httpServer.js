@@ -4,6 +4,7 @@ const fs = promises;
 import path from "path";
 import { fileURLToPath } from "url";
 import connection, { utilities } from "./bot.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -55,11 +56,33 @@ export default function startServer() {
               });
         }
         break;
+      case "POST":
+        if (req.url.match(/\/checkout\//)) {
+          const url = req.url.split("/");
+          const username = url[url.length - 1];
+          const response = await utilities.functions.checkOut(username);
+          res.setHeader("Content-Type", "application/json");
+          res.writeHead(200);
+          res.end(JSON.stringify(response));
+        } else if (req.url.match(/\/checkin\//)) {
+          const url = req.url.split("/");
+          const username = url[url.length - 1];
+          const response = await utilities.functions.checkIn(username);
+          res.setHeader("Content-Type", "application/json");
+          res.writeHead(200);
+          res.end(JSON.stringify(response));
+        }
+        break;
       case "DELETE":
-        if (req.url.match(/\/people\//)) {
+        if (req.url.match(/\/people\/\w+/)) {
           const url = req.url.split("/");
           const username = url[url.length - 1];
           const response = await utilities.functions.removePersonFromTourney(username);
+          res.setHeader("Content-Type", "application/json");
+          res.writeHead(200);
+          res.end(JSON.stringify(response));
+        } else if (req.url.match(/\/people/)) {
+          const response = await utilities.functions.clearTourney();
           res.setHeader("Content-Type", "application/json");
           res.writeHead(200);
           res.end(JSON.stringify(response));

@@ -128,7 +128,7 @@ const actionCommands = [
       console.log(username, "was already in the tourney");
     }
   }),
-  new Command("!leavetourney", "", "action", async ({ username }, { client, target, functions }) => {
+  new Command("!out", "", "action", async ({ username }, { client, target, functions }) => {
     const res = await functions.removePersonFromTourney(username);
     if (res) {
       client.say(target, `@${username} left the tourney! elvyncServingLs`);
@@ -138,7 +138,7 @@ const actionCommands = [
       console.log(username, "wasnt in the tourney");
     }
   }),
-  new Command("!check-in", "", "action", async ({ username }, { client, target, checkInsAllowed, functions }) => {
+  new Command("!in", "", "action", async ({ username }, { client, target, checkInsAllowed, functions }) => {
     if (checkInsAllowed) {
       const res = await functions.checkIn(username);
       if (res) {
