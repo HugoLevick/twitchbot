@@ -1,4 +1,5 @@
 let table = document.getElementById("checkintable");
+
 function loadTable() {
   table.innerHTML = "";
   let checkin = [];
@@ -25,7 +26,7 @@ function kickPlayer(username) {
     denyButtonText: `Don't save`,
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch("localhost/people/" + username, {
+      fetch("/people/" + username, {
         method: "DELETE",
       })
         .then((response) => response.json())
@@ -50,8 +51,13 @@ async function checkInPlayer(username) {
     confirmButtonText: "Yes",
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch("localhost/people/checkin/" + username, {
+      fetch("/people/" + username, {
         method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ checkin: true }),
       })
         .then((response) => response.json())
         .then((res) => {
@@ -75,8 +81,13 @@ async function checkOutPlayer(username) {
     confirmButtonText: "Yes",
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch("localhost/people/checkout/" + username, {
+      fetch("/people/" + username, {
         method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ checkin: false }),
       })
         .then((response) => response.json())
         .then((res) => {
