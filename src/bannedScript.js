@@ -77,9 +77,9 @@ async function clearList() {
   });
 }
 
-function reload() {
+function reload(filter) {
   setBannedPeople();
-  loadTable();
+  loadTable(filter);
 }
 
 reload();

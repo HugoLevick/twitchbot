@@ -180,8 +180,8 @@ async function setNumberOfPeople() {
   noOfCheckIns.innerHTML = people.length;
 }
 
-function reload() {
-  loadTable();
+function reload(filter) {
+  loadTable(filter);
   setNumberOfPeople();
 }
 

@@ -118,7 +118,7 @@
                   class="form-control"
                   style="max-width: 10rem"
                   id="filterTable"
-                  oninput="loadTable(this.value)"
+                  oninput="reload(this.value)"
                   placeholder="Search..."
                 />
               </div>
@@ -155,7 +155,7 @@
         </main>
       </div>
     </div>
-    <footer id="version" style="position: absolute; bottom: 0">v?</footer>
+    <footer id="version" style="position: sticky; bottom: 0">v?</footer>
     <script src="/src/version.js"></script>
     <script src="/src/bannedScript.js"></script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>

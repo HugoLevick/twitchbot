@@ -1,2 +1,1 @@
-cd src
-node bot.js
+node src/bot.js

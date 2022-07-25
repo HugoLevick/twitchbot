@@ -12,7 +12,7 @@ const mysqlCredentials = {
 
 let commands = [];
 
-const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 
 const options = {
   // options: {
