@@ -7,12 +7,12 @@ import startServer from "./httpServer.js";
 
 let commands = [];
 
-const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 
 const options = {
-  //   options: {
-  //     debug: true,
-  //   },
+  options: {
+    debug: true,
+  },
   identity: {
     username: "henzzito", //HERE YOU TYPE THE USERNAME OF THE BOT
     password: "oauth:c013cz4hbrzxjwdepbpvzphxl5nl9a", //HERE YOU TYPE THE AUTH PASS FROM THE WEBSITE www.twitchapps.com/tmi
@@ -61,7 +61,10 @@ client.on("chat", (target, ctx, message) => {
   if (!message.match(/!deletecomm/)) {
     commands.forEach((comm) => {
       const reg = new RegExp(comm.trigger, "i");
-      if (message.match(reg)) client.say(target, comm.content);
+      if (message.match(reg) && comm.content != "") {
+        client.say(target, comm.content);
+        console.log("Triggered " + comm.trigger + " it says" + comm.content);
+      }
     });
   }
 

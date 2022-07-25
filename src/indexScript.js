@@ -1,17 +1,22 @@
 let table = document.getElementById("checkintable");
 
-function loadTable() {
+function loadTable(filter) {
   table.innerHTML = "";
+  const filterRegExp = new RegExp(filter || ".*");
   let checkin = [];
   fetch("/people")
     .then((response) => response.json())
     .then((people) => {
       if (people.length > 0) {
         people.forEach((person) => {
-          //prettier-ignore
-          table.innerHTML += `<tr><td>${person.username}</td><td>${person.checkin === 1 ? "Yes" : "No"}</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" style="width: 5rem;"onclick="kickPlayer('${person.username}')">KICK</button><button type="button" class="btn btn-sm ${person.checkin ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary" style="margin-left: 0.5rem; width: 7rem" onclick="${person.checkin === 1 ? `checkOutPlayer('${person.username}')` : `checkInPlayer('${person.username}')`}">${person.checkin === 1 ? 'CHECK OUT' : 'CHECK IN'}</button><button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${person.username}')">BAN</button></td></tr>`;
-          checkin.push(person);
+          if (person.username.match(filterRegExp)) {
+            //prettier-ignore
+            table.innerHTML += `<tr><td>${person.username}</td><td>${person.checkin === 1 ? "Yes" : "No"}</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" style="width: 5rem;"onclick="kickPlayer('${person.username}')">KICK</button><button type="button" class="btn btn-sm ${person.checkin ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary" style="margin-left: 0.5rem; width: 7rem" onclick="${person.checkin === 1 ? `checkOutPlayer('${person.username}')` : `checkInPlayer('${person.username}')`}">${person.checkin === 1 ? 'CHECK OUT' : 'CHECK IN'}</button><button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${person.username}')">BAN</button></td></tr>`;
+            checkin.push(person);
+          }
         });
+      } else {
+        table.innerHTML = `<tr><td>There's no one here</td><td>...</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary">WHOOPS</button></td></tr>`;
       }
     });
 }

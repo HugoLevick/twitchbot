@@ -7,7 +7,8 @@ async function setBannedPeople() {
     });
 }
 
-async function loadTable() {
+async function loadTable(filter) {
+  const filterRegExp = new RegExp(filter || ".*");
   let table = document.getElementById("bannedtable");
   fetch("/banned")
     .then((response) => response.json())
@@ -15,8 +16,10 @@ async function loadTable() {
       if (people.length > 0) {
         table.innerHTML = "";
         people.forEach((person) => {
-          //prettier-ignore
-          table.innerHTML += `<tr><td>${person.username}</td><td><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" onclick="unban('${person.username}')">UNBAN</button></td></tr>`;
+          if (person.username.match(filterRegExp)) {
+            //prettier-ignore
+            table.innerHTML += `<tr><td>${person.username}</td><td><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" onclick="unban('${person.username}')">UNBAN</button></td></tr>`;
+          }
         });
       } else
         table.innerHTML = `<tr><td>There's no one here</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary">UNBAN</button></td></tr>`;

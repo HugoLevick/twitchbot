@@ -1,85 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="" />
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors" />
+    <meta name="generator" content="Hugo 0.101.0" />
+    <title>Twitch Bot</title>
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="" />
-  <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors" />
-  <meta name="generator" content="Hugo 0.101.0" />
-  <title>Twitch Bot</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx"
+      crossorigin="anonymous"
+    />
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous" />
-
-  <style>
-    .bd-placeholder-img {
-      font-size: 1.125rem;
-      text-anchor: middle;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      user-select: none;
-    }
-
-    @media (min-width: 768px) {
-      .bd-placeholder-img-lg {
-        font-size: 3.5rem;
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
       }
-    }
 
-    .b-example-divider {
-      height: 3rem;
-      background-color: rgba(0, 0, 0, 0.1);
-      border: solid rgba(0, 0, 0, 0.15);
-      border-width: 1px 0;
-      box-shadow: inset 0 0.5em 1.5em rgba(0, 0, 0, 0.1), inset 0 0.125em 0.5em rgba(0, 0, 0, 0.15);
-    }
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
 
-    .b-example-vr {
-      flex-shrink: 0;
-      width: 1.5rem;
-      height: 100vh;
-    }
+      .b-example-divider {
+        height: 3rem;
+        background-color: rgba(0, 0, 0, 0.1);
+        border: solid rgba(0, 0, 0, 0.15);
+        border-width: 1px 0;
+        box-shadow: inset 0 0.5em 1.5em rgba(0, 0, 0, 0.1), inset 0 0.125em 0.5em rgba(0, 0, 0, 0.15);
+      }
 
-    .bi {
-      vertical-align: -0.125em;
-      fill: currentColor;
-    }
+      .b-example-vr {
+        flex-shrink: 0;
+        width: 1.5rem;
+        height: 100vh;
+      }
 
-    .nav-scroller {
-      position: relative;
-      z-index: 2;
-      height: 2.75rem;
-      overflow-y: hidden;
-    }
+      .bi {
+        vertical-align: -0.125em;
+        fill: currentColor;
+      }
 
-    .nav-scroller .nav {
-      display: flex;
-      flex-wrap: nowrap;
-      padding-bottom: 1rem;
-      margin-top: -1px;
-      overflow-x: auto;
-      text-align: center;
-      white-space: nowrap;
-      -webkit-overflow-scrolling: touch;
-    }
-  </style>
-</head>
+      .nav-scroller {
+        position: relative;
+        z-index: 2;
+        height: 2.75rem;
+        overflow-y: hidden;
+      }
 
-<body>
-  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="/">Twitch Bot</a>
-    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse"
-      data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-  </header>
+      .nav-scroller .nav {
+        display: flex;
+        flex-wrap: nowrap;
+        padding-bottom: 1rem;
+        margin-top: -1px;
+        overflow-x: auto;
+        text-align: center;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+      }
+    </style>
+  </head>
 
-  <div class="container-fluid">
-    <div class="row">
-      <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-        <div class="position-sticky pt-3 sidebar-sticky">
-          <ul class="nav flex-column">
+  <body>
+    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="/">Twitch Bot</a>
+      <button
+        class="navbar-toggler position-absolute d-md-none collapsed"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#sidebarMenu"
+        aria-controls="sidebarMenu"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </header>
+
+    <div class="container-fluid">
+      <div class="row">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+          <div class="position-sticky pt-3 sidebar-sticky">
+            <ul class="nav flex-column">
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="/managetourneys/"> Manage Tourneys </a>
               </li>
@@ -93,53 +103,50 @@
                 <a class="nav-link active" aria-current="page" href="/bannedpeople/"> Banned People </a>
               </li>
             </ul>
-        </div>
-      </nav>
+          </div>
+        </nav>
 
-      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-        <div
-          class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-          <h1 class="h1">Elvyn Calderon</h1>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="reload()">Reload</button>
-        </div>
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
-          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
-            <h2 class="mb-0" style="margin-right: 0.5rem;">Randomize Teams</h2>
-            <p class="mb-0" style="margin-left: 0.5rem;">Total people checked-in: <span id="noOfPeople">Waiting for server...</span></p>
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h1">Elvyn Calderon</h1>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="reload()">Reload</button>
           </div>
-          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
-            <div class="input-group m-0">
-              <div class="input-group-prepend">
-                <span class="input-group-text" id="basic-addon1">Teams of:</span>
-              </div>
-              <input type="number" class="form-control" style="max-width: 5rem;" id="peopleperteam" value="4" min="1">
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
+              <h2 class="mb-0" style="margin-right: 0.5rem">Randomize Teams</h2>
+              <p class="mb-0" style="margin-left: 0.5rem">Total people checked-in: <span id="noOfPeople">Waiting for server...</span></p>
             </div>
-            <button class="btn btn-sm btn-outline-secondary" onclick="randomizeTeams()">Randomize</button>
-          </div>
-        </div>
-        <div id="teamsgrid">
-          <div class="row">
-            <div class="col d-flex justify-content-center align-items-center">
-              <div class="card" style="width: 17rem">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                  <p class="h3">Team X</p>
-                  <button class="btn btn-outline-primary">Copy</button>
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
+              <div class="input-group m-0">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="basic-addon1">Teams of:</span>
                 </div>
-                <ul class="list-group list-group-flush">
-                  <li class="list-group-item">Teams will appear here</li>
-                </ul>
+                <input type="number" class="form-control" style="max-width: 5rem" id="peopleperteam" value="4" min="1" />
               </div>
+              <button class="btn btn-sm btn-outline-secondary" onclick="randomizeTeams()">Randomize</button>
             </div>
-            <!--end of col-->
           </div>
-          <!--end of row-->
-        </div>
+          <div id="teamsgrid">
+            <div class="row">
+              <div class="col d-flex justify-content-center align-items-center">
+                <div class="card" style="width: 17rem">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <p class="h3">Team X</p>
+                    <button class="btn btn-outline-primary">Copy</button>
+                  </div>
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Teams will appear here</li>
+                  </ul>
+                </div>
+              </div>
+              <!--end of col-->
+            </div>
+            <!--end of row-->
+          </div>
+        </main>
+      </div>
     </div>
-    </main>
-  </div>
-  </div>
-  <script src="/src/teamsScript.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</body>
-
+    <script src="/src/teamsScript.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </body>
 </html>

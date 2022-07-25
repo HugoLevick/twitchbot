@@ -106,8 +106,23 @@
         </nav>
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h1">Elvyn Calderon</h1>
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
+              <div class="input-group m-0">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="basic-addon1">Filter:</span>
+                </div>
+                <input
+                  type="text"
+                  class="form-control"
+                  style="max-width: 10rem"
+                  id="filterTable"
+                  oninput="loadTable(this.value)"
+                  placeholder="Search..."
+                />
+              </div>
+            </div>
           </div>
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
