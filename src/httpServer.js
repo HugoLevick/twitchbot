@@ -105,7 +105,7 @@ export default function startServer() {
   });
 
   app.listen(3000, () => {
-    console.log("El servidor está inicializado en el puerto 3000");
+    console.log("Server initialized on port 3000(localhost:3000)");
   });
 }
 

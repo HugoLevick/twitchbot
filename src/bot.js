@@ -1,9 +1,14 @@
 import tmi from "tmi.js";
-import ViewersQueue from "./viewersQueueHandler.js";
 import mysql from "mysql2";
 import Command from "./commandClass.js";
 import actionCommands from "./commands.js";
 import startServer from "./httpServer.js";
+
+const mysqlCredentials = {
+  host: "localhost",
+  user: "root",
+  password: "root",
+};
 
 let commands = [];
 
@@ -22,8 +27,9 @@ const options = {
 
 const client = new tmi.client(options);
 
+const bots = [options.identity.username, "nightbot", "streamelements"];
+
 export let utilities = {
-  viewersQueue: new ViewersQueue(),
   params: [],
   greetedPeople: [],
   client: client,
@@ -33,8 +39,6 @@ export let utilities = {
   functions: {
     isOwner: isOwner,
     isModOrOwner: isModOrOwner,
-    insertCommand: insertCommand,
-    deleteCommand: deleteCommand,
     addPersonToTourney: addPersonToTourney,
     removePersonFromTourney: removePersonFromTourney,
     clearTourney: clearTourney,
@@ -51,29 +55,12 @@ client.on("connected", () => {
 });
 
 client.on("chat", (target, ctx, message) => {
-  if (ctx.username === options.identity.username) return;
+  if (bots.includes(ctx.username)) return;
   utilities.target = target;
-
-  //   console.log(target);
-  //console.log(ctx);
   const commandRegex = /!\w/;
 
-  if (!message.match(/!deletecomm/)) {
-    commands.forEach((comm) => {
-      const reg = new RegExp(comm.trigger, "i");
-      if (message.match(reg) && comm.content != "") {
-        client.say(target, comm.content);
-        console.log("Triggered " + comm.trigger + " it says" + comm.content);
-      }
-    });
-  }
-
-  if (message.match(/^hi+\s?|^hi+?|^hello+\s?|^hello+|^howdy\s?/i) && !utilities.greetedPeople.includes(ctx.username)) {
-    client.say(target, greet(ctx.username));
-    utilities.greetedPeople.push(ctx.username);
-    return;
-  }
-
+  // console.log(target);
+  // console.log(ctx);
   // if (ctx.username == "aarond_") {
   //   client.say(target, "^ this kid is ass");
   //   return;
@@ -101,10 +88,6 @@ function isOwner(ctx) {
   return ctx.badges?.broadcaster == 1 || ctx.username === "h_levick" ? true : false;
 }
 
-function greet(username) {
-  return "Hi! @" + username;
-}
-
 function stripCommand(message) {
   const split = message.split(/\s+/);
   let command, startsAt;
@@ -116,39 +99,6 @@ function stripCommand(message) {
     }
   });
   return [command, split.splice(startsAt + 1, split.length)];
-}
-
-function insertCommand(command, content) {
-  command = String(command).replace(/'/g, "");
-  content = String(content).replace(/'/g, "");
-  connection.query(`USE ${bottedChannel};`, (err) => {
-    if (err) throw err;
-  });
-  connection.query(`INSERT INTO Commands (command, content) VALUES ('${command}', '${content}')`, (err) => {
-    if (err) throw err;
-  });
-  commands.push({ trigger: command, content: content });
-  return true;
-}
-
-function deleteCommand(trigger) {
-  trigger = String(trigger).replace(/'/g, "");
-  connection.query(`USE ${bottedChannel};`, (err) => {
-    if (err) throw err;
-  });
-  let success = false;
-
-  connection.query(`DELETE FROM Commands WHERE command = '${trigger}';`, (err) => {
-    if (err) throw err;
-  });
-
-  commands.forEach((comm, index) => {
-    if (comm.trigger === trigger) {
-      commands.splice(index, 1);
-      success = true;
-    }
-  });
-  return success;
 }
 
 async function addPersonToTourney(username) {
@@ -243,14 +193,10 @@ export async function queryDatabase(sql) {
   });
 }
 
-// function doTextCommand(trigger) {
-//   console.log(trigger);
-// }
-
 const connection = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root",
+  host: mysqlCredentials.localhost,
+  user: mysqlCredentials.user,
+  password: mysqlCredentials.password,
 });
 
 export default connection;
