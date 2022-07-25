@@ -1,12 +1,12 @@
 let table = document.getElementById("checkintable");
 
 function loadTable(filter) {
-  table.innerHTML = "";
   const filterRegExp = new RegExp(filter || ".*");
   let checkin = [];
   fetch("/people")
     .then((response) => response.json())
     .then((people) => {
+      table.innerHTML = "";
       if (people.length > 0) {
         people.forEach((person) => {
           if (person.username.match(filterRegExp)) {

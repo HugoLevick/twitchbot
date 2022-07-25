@@ -119,7 +119,11 @@ const actionCommands = [
     console.log("Showed commands");
   }),
   new Command("!jointourney", "", "action", async ({ username }, { client, target, functions }) => {
-    const res = await functions.addPersonToTourney(username);
+    const res = await functions.addPersonToTourney(username).catch((err) => {
+      if (err.code === "ER_DUP_ENTRY") {
+        return [false, "normal"];
+      }
+    });
     if (res[0]) {
       client.say(target, `@${username} joined the tourney! elvyncHype`);
       console.log(`${username} joined the tourney`);

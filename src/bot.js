@@ -7,12 +7,12 @@ import startServer from "./httpServer.js";
 
 let commands = [];
 
-const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 
 const options = {
-  options: {
-    debug: true,
-  },
+  // options: {
+  //   debug: true,
+  // },
   identity: {
     username: "henzzito", //HERE YOU TYPE THE USERNAME OF THE BOT
     password: "oauth:c013cz4hbrzxjwdepbpvzphxl5nl9a", //HERE YOU TYPE THE AUTH PASS FROM THE WEBSITE www.twitchapps.com/tmi
@@ -157,26 +157,12 @@ async function addPersonToTourney(username) {
   });
   if (!banned.includes(username)) {
     const response = await new Promise((resolve, reject) => {
-      connection.query(`SELECT * FROM check_in;`, (err, result) => {
+      connection.query(`INSERT INTO check_in(username, checkin) VALUES("${username}", 0);`, (err) => {
         if (err) reject(err);
-        else resolve(result);
+        else resolve(true);
       });
-    }).then((people) => {
-      let inList = false;
-      people.every((person) => {
-        if (person.username === username) {
-          inList = true;
-          return 0;
-        }
-      });
-      if (!inList) {
-        connection.query(`INSERT INTO check_in(username, checkin) VALUES("${username}", 0);`, (err) => {
-          if (err) throw err;
-        });
-      }
-      return inList;
     });
-    return [!response, "normal"];
+    return [response, "normal"];
   } else {
     return [false, "banned"];
   }
@@ -288,10 +274,10 @@ connection.connect((err) => {
          if (err) throw err;
       });
       //prettier-ignore
-      connection.query("CREATE TABLE Check_In (username varchar(255), checkin boolean);", (err) => {
+      connection.query("CREATE TABLE Check_In (username varchar(255) unique, checkin boolean);", (err) => {
          if (err) throw err;
       });
-      connection.query("CREATE TABLE banned (username varchar(255));", (err) => {
+      connection.query("CREATE TABLE banned (username varchar(255) unique);", (err) => {
         if (err) throw err;
       });
       console.log("Database created!");

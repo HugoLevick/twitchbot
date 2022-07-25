@@ -72,13 +72,23 @@ export default function startServer() {
         else res.send(JSON.stringify(false));
       })
       .catch(async (err) => {
-        if (err.code === "ER_NO_SUCH_TABLE") {
-          queryDatabase("CREATE TABLE banned (username varchar(255));").then(async () => {
-            const result = await insertIntoDatabase("banned", "username", `"${req.body.username}"`);
-            res.send(JSON.stringify(result));
-          });
-        } else console.log(err);
+        switch (err.code) {
+          case "ER_NO_SUCH_TABLE":
+            queryDatabase("CREATE TABLE banned (username varchar(255));").then(async () => {
+              res.send(JSON.stringify([]));
+            });
+            break;
+          case "ER_DUP_ENTRY":
+            res.send(JSON.stringify(false));
+            break;
+          default:
+            console.log(err);
+        }
       });
+  });
+
+  app.delete("/people", async function (req, res) {
+    res.send(await utilities.functions.clearTourney());
   });
 
   app.delete("/people/:username", async function (req, res) {

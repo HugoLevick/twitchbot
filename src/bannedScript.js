@@ -43,7 +43,7 @@ async function unban(username) {
             Swal.fire(username + " has been unbanned!", "", "success");
             reload();
           } else {
-            Swal.fire("Couldn't unban " + username, "I dont know why this happened", "error");
+            Swal.fire("Couldn't unban " + username, "They might be already banned", "error");
             reload();
           }
         });
