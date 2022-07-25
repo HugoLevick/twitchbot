@@ -9,8 +9,7 @@ function loadTable() {
       if (people.length > 0) {
         people.forEach((person) => {
           //prettier-ignore
-          table.innerHTML += `<tr><td>${person.username}</td><td>${person.checkin === 1 ? "Yes" : "No"}</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" onclick="kickPlayer('${
-          person.username}')">KICK</button><button type="button" class="btn btn-sm ${person.checkin ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary" style="margin-left: 0.5rem; width: 7rem" onclick="${person.checkin === 1 ? `checkOutPlayer('${person.username}')` : `checkInPlayer('${person.username}')`}">${person.checkin === 1 ? 'CHECK OUT' : 'CHECK IN'}</button></td></tr>`;
+          table.innerHTML += `<tr><td>${person.username}</td><td>${person.checkin === 1 ? "Yes" : "No"}</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" style="width: 5rem;"onclick="kickPlayer('${person.username}')">KICK</button><button type="button" class="btn btn-sm ${person.checkin ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary" style="margin-left: 0.5rem; width: 7rem" onclick="${person.checkin === 1 ? `checkOutPlayer('${person.username}')` : `checkInPlayer('${person.username}')`}">${person.checkin === 1 ? 'CHECK OUT' : 'CHECK IN'}</button><button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${person.username}')">BAN</button></td></tr>`;
           checkin.push(person);
         });
       }
@@ -23,7 +22,6 @@ function kickPlayer(username) {
     icon: "warning",
     showCancelButton: true,
     confirmButtonText: "Yes",
-    denyButtonText: `Don't save`,
   }).then((result) => {
     if (result.isConfirmed) {
       fetch("/people/" + username, {
@@ -52,7 +50,7 @@ async function checkInPlayer(username) {
   }).then((result) => {
     if (result.isConfirmed) {
       fetch("/people/" + username, {
-        method: "POST",
+        method: "PUT",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -82,7 +80,7 @@ async function checkOutPlayer(username) {
   }).then((result) => {
     if (result.isConfirmed) {
       fetch("/people/" + username, {
-        method: "POST",
+        method: "PUT",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -103,6 +101,40 @@ async function checkOutPlayer(username) {
   });
 }
 
+async function ban(username) {
+  Swal.fire({
+    title: `Do you really want to ban ${username}?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes",
+  }).then((result) => {
+    if (result.isConfirmed) {
+      fetch("/people/" + username, {
+        method: "DELETE",
+      }).then(() => {
+        fetch("/banned", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username: username }),
+        })
+          .then((response) => response.json())
+          .then((res) => {
+            if (res) {
+              Swal.fire(username + " has been banned!", "", "success");
+              reload();
+            } else {
+              Swal.fire("Couldn't ban " + username, "I actually dont know why this happened", "error");
+              reload();
+            }
+          });
+      });
+    }
+  });
+}
+
 async function clearList() {
   Swal.fire({
     title: `U sure dawg?`,
@@ -111,7 +143,7 @@ async function clearList() {
     confirmButtonText: "Yes",
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch("localhost/people/", {
+      fetch("/people", {
         method: "DELETE",
       })
         .then((response) => response.json())

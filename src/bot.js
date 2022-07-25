@@ -5,11 +5,9 @@ import Command from "./commandClass.js";
 import actionCommands from "./commands.js";
 import startServer from "./httpServer.js";
 
-startServer();
-
 let commands = [];
 
-const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 
 const options = {
   //   options: {
@@ -48,9 +46,9 @@ export let utilities = {
 
 client.connect();
 
-// client.on("connected", () => {
-//   client.action(bottedChannel, "Henzzito is now live!");
-// });
+client.on("connected", () => {
+  console.log("Connected to Twitch");
+});
 
 client.on("chat", (target, ctx, message) => {
   if (ctx.username === options.identity.username) return;
@@ -151,27 +149,34 @@ function deleteCommand(trigger) {
 }
 
 async function addPersonToTourney(username) {
-  const response = await new Promise((resolve, reject) => {
-    connection.query(`SELECT * FROM check_in;`, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  }).then((people) => {
-    let inList = false;
-    people.every((person) => {
-      if (person.username === username) {
-        inList = true;
-        return 0;
-      }
-    });
-    if (!inList) {
-      connection.query(`INSERT INTO check_in(username, checkin) VALUES("${username}", 0);`, (err) => {
-        if (err) throw err;
-      });
-    }
-    return inList;
+  const banned = await retrieveBanned().then((res) => {
+    return res.map((p) => p.username);
   });
-  return !response;
+  if (!banned.includes(username)) {
+    const response = await new Promise((resolve, reject) => {
+      connection.query(`SELECT * FROM check_in;`, (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      });
+    }).then((people) => {
+      let inList = false;
+      people.every((person) => {
+        if (person.username === username) {
+          inList = true;
+          return 0;
+        }
+      });
+      if (!inList) {
+        connection.query(`INSERT INTO check_in(username, checkin) VALUES("${username}", 0);`, (err) => {
+          if (err) throw err;
+        });
+      }
+      return inList;
+    });
+    return [!response, "normal"];
+  } else {
+    return [false, "banned"];
+  }
 }
 
 function toggleCheckIns() {
@@ -195,6 +200,18 @@ async function removePersonFromTourney(username) {
   return await deleteFromDatabase("Check_In", "username", `"${username}"`);
 }
 
+async function retrieveBanned() {
+  const res = await queryDatabase("SELECT * FROM banned;").catch(async (err) => {
+    if (err.code === "ER_NO_SUCH_TABLE") {
+      const res2 = await queryDatabase("CREATE TABLE banned (username varchar(255));");
+      return await retrieveBanned();
+    } else {
+      console.log(err);
+    }
+  });
+  return res;
+}
+
 async function clearTourney() {
   await queryDatabase("TRUNCATE check_in");
   return true;
@@ -210,7 +227,7 @@ async function deleteFromDatabase(table, field, value) {
   });
 }
 
-async function insertIntoDatabase(table, fields, values) {
+export async function insertIntoDatabase(table, fields, values) {
   return await new Promise((res, rej) => {
     connection.query(`INSERT INTO ${table}(${fields}) VALUES(${values});`, (err, result) => {
       if (err) rej(err);
@@ -228,7 +245,7 @@ async function updateDatabase(table, set, setValue, where, whereValue) {
   });
 }
 
-async function queryDatabase(sql) {
+export async function queryDatabase(sql) {
   return await new Promise((res, rej) => {
     connection.query(sql, (err, result) => {
       if (err) rej(err);
@@ -237,9 +254,9 @@ async function queryDatabase(sql) {
   });
 }
 
-function doTextCommand(trigger) {
-  console.log(trigger);
-}
+// function doTextCommand(trigger) {
+//   console.log(trigger);
+// }
 
 const connection = mysql.createConnection({
   host: "localhost",
@@ -271,6 +288,9 @@ connection.connect((err) => {
       connection.query("CREATE TABLE Check_In (username varchar(255), checkin boolean);", (err) => {
          if (err) throw err;
       });
+      connection.query("CREATE TABLE banned (username varchar(255));", (err) => {
+        if (err) throw err;
+      });
       console.log("Database created!");
     }
 
@@ -288,3 +308,5 @@ connection.connect((err) => {
     });
   });
 });
+
+startServer();

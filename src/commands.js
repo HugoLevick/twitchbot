@@ -120,12 +120,17 @@ const actionCommands = [
   }),
   new Command("!jointourney", "", "action", async ({ username }, { client, target, functions }) => {
     const res = await functions.addPersonToTourney(username);
-    if (res) {
-      client.say(target, `elvyncHype @${username} joined the tourney! elvyncHype`);
+    if (res[0]) {
+      client.say(target, `@${username} joined the tourney! elvyncHype`);
       console.log(`${username} joined the tourney`);
     } else {
-      client.say(target, `@${username} is already in the tourney elvyncServingLs`);
-      console.log(username, "was already in the tourney");
+      if (res[1] === "banned") {
+        client.say(target, `@${username} is banned 💥🔨`);
+        console.log(username, "is banned and tried to join tourney");
+      } else {
+        client.say(target, `@${username} is already in the tourney elvyncServingLs`);
+        console.log(username, "was already in the tourney");
+      }
     }
   }),
   new Command("!out", "", "action", async ({ username }, { client, target, functions }) => {
