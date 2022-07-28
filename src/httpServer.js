@@ -22,6 +22,10 @@ export default function startServer() {
     res.sendFile(path.join(__dirname, "/../tourneys/managetourneys.html"));
   });
 
+  app.get("/managetourneys/new", function (req, res) {
+    res.sendFile(path.join(__dirname, "/../tourneys/new/newtourney.html"));
+  });
+
   app.get("/teams", function (req, res) {
     res.sendFile(path.join(__dirname, "/../teams/teams.html"));
   });
@@ -63,6 +67,28 @@ export default function startServer() {
     } else {
       res.send(await utilities.functions.checkOut(req.params.id));
     }
+  });
+
+  app.post("/people", async function (req, res) {
+    insertIntoDatabase("check_in", "username", `"${req.body.username}"`)
+      .then((response) => {
+        if (response.affectedRows > 0) res.send(JSON.stringify(true));
+        else res.send(JSON.stringify(false));
+      })
+      .catch(async (err) => {
+        switch (err.code) {
+          case "ER_NO_SUCH_TABLE":
+            queryDatabase("CREATE TABLE banned (username varchar(255) unique);").then(async () => {
+              res.send(JSON.stringify([]));
+            });
+            break;
+          case "ER_DUP_ENTRY":
+            res.send(JSON.stringify(false));
+            break;
+          default:
+            console.log(err);
+        }
+      });
   });
 
   app.post("/banned", async function (req, res) {
@@ -121,7 +147,7 @@ async function unbanPerson(username) {
 
 async function unbanEveryone() {
   return await new Promise((res) => {
-    connection.query(`TRUNCATE banned;`, (err, result) => {
+    connection.query(`TRUNCATE banned;`, (err) => {
       if (err) {
         console.log(err);
         res(false);

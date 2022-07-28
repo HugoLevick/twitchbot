@@ -1,18 +1,12 @@
 import tmi from "tmi.js";
 import mysql from "mysql2";
-import Command from "./commandClass.js";
-import actionCommands from "./commands.js";
 import startServer from "./httpServer.js";
-
-const mysqlCredentials = {
-  host: "localhost",
-  user: "root",
-  password: "root",
-};
+import mysqlCredentials from "../mySQLCredentials.js";
+import dbStructure from "./dbStructure.js";
 
 let commands = [];
 
-const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 
 const options = {
   // options: {
@@ -72,7 +66,7 @@ client.on("chat", (target, ctx, message) => {
     utilities.params = params;
     console.log(`${ctx.username}: ${command}`);
     commands.forEach((comm) => {
-      if (comm.trigger === command) {
+      if (command.match(new RegExp(comm.trigger, "i"))) {
         if (comm.type === "action") comm.action(ctx, utilities);
         else console.log("in progress");
       }
@@ -193,6 +187,50 @@ export async function queryDatabase(sql) {
   });
 }
 
+async function checkDbValidity() {
+  let tables = await queryDatabase("SHOW TABLES");
+  tables = tables.map((table) => table["Tables_in_" + toLowerCase(bottedChannel)]); //OBTAIN TABLE NAMES
+  return await new Promise(async (resolve, reject) => {
+    //prettier-ignore
+    for(let table in tables){ //FOR EACH TABLE CHECK EACH FIELD
+      const structure = await queryDatabase("DESCRIBE " + tables[table]);
+      const intendedStr = dbStructure[tables[table]];
+      //prettier-ignore
+      for(let field in intendedStr){ //FOR EACH FIELD CHECK EACH PROPERTY
+        const dbField = structure[field];
+        const intendedF = intendedStr[field];
+        const keys1 = Object.keys(dbField);
+        const keys2 = Object.keys(intendedF);
+        if (keys1.length !== keys2.length) {
+          reject([
+            "column-doesnt-exist",
+            {
+              column: intendedF.Field,
+              field: intendedF[key],
+              table: tables[table],
+              key: key,
+            },
+            `Keys are not the same ${key} ${dbField[key]} ${intendedF[key]}}`,
+          ]);
+          return 0;
+        }
+        for (let key of keys1) {
+          if (dbField[key] !== intendedF[key]) {
+            reject(['column-property',{column: intendedF, table: tables[table]},`Property is not the same ${key} database: ${dbField[key]} intended: ${intendedF[key]}`]);
+            return 0;
+          }
+        }
+      }
+    }
+    resolve(true);
+  });
+}
+
+function createColumnSQL({ table, column }) {
+  //prettier-ignore
+  return `ALTER TABLE ${table} MODIFY COLUMN ${column.Field} ${column.Type} ${column.Null === "YES" ? "" : "NOT NULL"} ${column.Primary === "PRI" ? "PRIMARY" : ""} DEFAULT '${column.Default}'`;
+}
+
 const connection = mysql.createConnection({
   host: mysqlCredentials.localhost,
   user: mysqlCredentials.user,
@@ -201,47 +239,54 @@ const connection = mysql.createConnection({
 
 export default connection;
 
-connection.connect((err) => {
+connection.connect(async (err) => {
   if (err) throw err;
   console.log("Connected to database");
-  connection.query(`USE ${bottedChannel};`, (err) => {
-    if (err) {
-      console.log(`Creating database ${bottedChannel}...`);
-      //prettier-ignore
-      connection.query(`CREATE DATABASE ${bottedChannel};`, (err) => {if (err) throw err;});
-      //prettier-ignore
-      connection.query(`USE ${bottedChannel};`, (err) => {if (err) throw err});
-      //prettier-ignore
-      connection.query("CREATE TABLE Commands (command varchar(255), content varchar(512));", (err) => {
-        if (err) throw err;
-      });
-      //prettier-ignore
-      connection.query("CREATE TABLE Tourneys (name varchar(255), start datetime, finish datetime);", (err) => {
-         if (err) throw err;
-      });
-      //prettier-ignore
-      connection.query("CREATE TABLE Check_In (username varchar(255) unique, checkin boolean);", (err) => {
-         if (err) throw err;
-      });
-      connection.query("CREATE TABLE banned (username varchar(255) unique);", (err) => {
-        if (err) throw err;
-      });
-      console.log("Database created!");
-    }
+  new Promise((resolve, reject) => {
+    connection.query(`USE ${bottedChannel};`, (err) => {
+      if (err) {
+        console.log(`Creating database ${bottedChannel}...`);
+        //prettier-ignore
+        connection.query(`CREATE DATABASE ${bottedChannel};`, (err) => {if (err) reject( err);});
+        //prettier-ignore
+        connection.query(`USE ${bottedChannel};`, (err) => {if (err) reject( err)});
+        //prettier-ignore
+        connection.query("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize INT UNSIGNED NOT NULL DEFAULT 0, entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, people JSON NOT NULL DEFAULT ('{}'), PRIMARY KEY(id));", (err) => {
+         if (err) reject( err);
+        });
+        //prettier-ignore
+        connection.query("CREATE TABLE check_in (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-', team JSON NOT NULL DEFAULT (JSON_ARRAY()), checkin BOOLEAN NOT NULL DEFAULT 0);", (err) => {
+         if (err){
+          console.log(err);
+          reject(err);
+        };
+        });
+        connection.query("CREATE TABLE banned (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-');", (err) => {
+          if (err) reject(err);
+        });
+        connection.query("CREATE TABLE version (version VARCHAR(20) NOT NULL DEFAULT '1.0');");
+        console.log("Database created!");
+      }
+      console.log(`Using database ${bottedChannel}`);
 
-    console.log(`Using database ${bottedChannel}`);
-
-    connection.query("SELECT * FROM Commands", (err, result) => {
-      if (err) throw err;
-      result.forEach((comm) => {
-        commands.push(new Command(comm.command, comm.content, comm.type));
-      });
-      actionCommands.forEach((comm) => {
-        commands.push(comm);
-      });
-      console.log("Retrieved the following commands from database", commands);
+      resolve();
     });
-  });
+  })
+    .then(async () => {
+      // await checkDbValidity()
+      //   .then((version) => {
+      //     console.log("Database has been validated v" + version);
+      //     startServer();
+      //   })
+      //   .catch(async (err) => {
+      //     console.log(
+      //       "------------------------------------------------------------------------\n\nDATABASE DOES NOT MATCH THE VERSION. SERVER HAS NOT BEEN INITIALIZED... BEGINNING DATABASE UPDATE\n\n--------------------------------------------\n" +
+      //         err[2]
+      //     );
+      //   });
+      startServer();
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 });
-
-startServer();
