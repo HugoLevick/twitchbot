@@ -11,10 +11,11 @@ function loadTable(filter) {
         people.forEach((person) => {
           if (person.username.match(filterRegExp)) {
             //prettier-ignore
-            table.innerHTML += `<tr><td>${person.username}</td><td>${person.checkin === 1 ? "Yes" : "No"}</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary fs-6" style="width: 5rem;"onclick="kickPlayer('${person.username}')">KICK</button><button type="button" class="btn btn-sm ${person.checkin ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 8rem" onclick="${person.checkin === 1 ? `checkOutPlayer('${person.username}')` : `checkInPlayer('${person.username}')`}">${person.checkin === 1 ? 'CHECK OUT' : 'CHECK IN'}</button><button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${person.username}')">BAN</button></td></tr>`;
+            table.innerHTML += `<tr><td>${person.username}</td><td>${person.checkin === 1 ? "Yes" : "No"}</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary fs-6" style="width: 5rem;"onclick="kickPlayer('${person.username}')"><span data-feather="user-x"></span>&nbsp;KICK</button><button type="button" class="btn btn-sm ${person.checkin ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 8rem" onclick="${person.checkin === 1 ? `checkOutPlayer('${person.username}')` : `checkInPlayer('${person.username}')`}">${person.checkin === 1 ? '<span data-feather="user-minus"></span>&nbsp;CHECK OUT' : '<span data-feather="user-check"></span>&nbsp;CHECK IN'}</button><button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${person.username}')"><span data-feather="slash"></span>&nbsp;BAN</button></td></tr>`;
             checkin.push(person);
           }
         });
+        feather.replace({ "aria-hidden": "true" });
       } else {
         table.innerHTML = `<tr><td>There's no one here</td><td>...</td><td class="d-flex align-items-center justify-content-center"><button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary">WHOOPS</button></td></tr>`;
       }
@@ -24,7 +25,7 @@ function loadTable(filter) {
 function kickPlayer(username) {
   Swal.fire({
     title: `Do you really want to kick ${username}?`,
-    icon: "warning",
+    icon: "question",
     showCancelButton: true,
     confirmButtonText: "Yes",
   }).then((result) => {
@@ -49,7 +50,7 @@ function kickPlayer(username) {
 async function checkInPlayer(username) {
   Swal.fire({
     title: `Do you really want to check in ${username}?`,
-    icon: "warning",
+    icon: "question",
     showCancelButton: true,
     confirmButtonText: "Yes",
   }).then((result) => {
@@ -79,7 +80,7 @@ async function checkInPlayer(username) {
 async function checkOutPlayer(username) {
   Swal.fire({
     title: `Do you really want to check out ${username}?`,
-    icon: "warning",
+    icon: "question",
     showCancelButton: true,
     confirmButtonText: "Yes",
   }).then((result) => {
@@ -109,7 +110,7 @@ async function checkOutPlayer(username) {
 async function ban(username) {
   Swal.fire({
     title: `Do you really want to ban ${username}?`,
-    icon: "warning",
+    icon: "question",
     showCancelButton: true,
     confirmButtonText: "Yes",
   }).then((result) => {

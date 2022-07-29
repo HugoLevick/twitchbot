@@ -251,7 +251,7 @@ connection.connect(async (err) => {
         //prettier-ignore
         connection.query(`USE ${bottedChannel};`, (err) => {if (err) reject( err)});
         //prettier-ignore
-        connection.query("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize INT UNSIGNED NOT NULL DEFAULT 0, entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, people JSON NOT NULL DEFAULT ('{}'), PRIMARY KEY(id));", (err) => {
+        connection.query("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize VARCHAR(50) NOT NULL DEFAULT '0', entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, link VARCHAR(511), people JSON NOT NULL DEFAULT ('{}'), PRIMARY KEY(id));", (err) => {
          if (err) reject( err);
         });
         //prettier-ignore

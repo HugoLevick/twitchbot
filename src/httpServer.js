@@ -5,8 +5,10 @@ import connection, { insertIntoDatabase, queryDatabase, utilities } from "./bot.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import express from "express"; //EXPRESS
+import express, { query } from "express"; //EXPRESS
 import bodyParser from "body-parser";
+import { link } from "fs";
+import { start } from "repl";
 const app = express();
 
 export default function startServer() {
@@ -55,10 +57,21 @@ export default function startServer() {
   });
 
   app.get("/tourneys", function (req, res) {
-    connection.query("SELECT * FROM Tourneys;", (err, result) => {
+    connection.query("SELECT * FROM Tourneys ORDER BY start DESC;", (err, result) => {
       if (err) throw err;
       res.send(JSON.stringify(result));
     });
+  });
+
+  app.get("/tourneys/:id", function (req, res) {
+    connection.query("SELECT * FROM Tourneys WHERE id=" + req.params.id, (err, result) => {
+      if (err) throw err;
+      res.send(JSON.stringify(result));
+    });
+  });
+
+  app.get("/edit/tourney/", function (req, res) {
+    res.sendFile(path.join(__dirname, "/../tourneys/edit/editTourney.html"));
   });
 
   app.put("/people/:id", async function (req, res) {
@@ -89,6 +102,40 @@ export default function startServer() {
             console.log(err);
         }
       });
+  });
+
+  app.post("/tourneys", async function (req, res) {
+    const { tourneyName, tourneyPrize, radiosPrize, freeEntry, entryFee, selectedMode, randomized, tourneyLink } = req.body;
+    const [startDate, startHours] = req.body.startDate.split("T");
+    const [endDate, endHours] = req.body.endDate.split("T");
+
+    //prettier-ignore
+    queryDatabase(`INSERT INTO tourneys (name, start, finish, mode, prize, entry, randomized${tourneyLink ?', link':''}) VALUES ('${tourneyName}', '${startDate} ${startHours}', '${endDate} ${endHours}', '${selectedMode}', '${tourneyPrize !== ''? `${tourneyPrize} ${radiosPrize}` : `no`}', ${freeEntry === 'on' ? '0' : entryFee}, ${randomized === 'on' ? '1' : '0'}${tourneyLink ? `, '${tourneyLink}'` : ''})`)
+    .then(()=>{
+      console.log('Created tourney ' + tourneyName);
+      res.redirect("/managetourneys");
+    })
+    .catch((err)=>{
+      console.log('--------------ERROR WHEN CREATING TOURNEY ' + tourneyName + '------------------');
+      console.log(err);
+      res.redirect('/');
+    })
+  });
+
+  app.post("/tourneys/:id", (req, res) => {
+    if (req.body._method === "PUT") {
+      const { tourneyName, tourneyPrize, radiosPrize, freeEntry, entryFee, selectedMode, randomized, tourneyLink, id } = req.body;
+      const [startDate, startHours] = req.body.startDate.split("T");
+      const [endDate, endHours] = req.body.endDate.split("T");
+      //prettier-ignore
+      queryDatabase(`UPDATE tourneys SET name='${tourneyName}', prize='${tourneyPrize == 0? '0' : `${tourneyPrize} ${radiosPrize}`}', entry=${freeEntry === 'on' ? '0' : entryFee}, mode='${selectedMode}', link='${tourneyLink}', randomized=${randomized === 'on' ? 1 : 0}, start='${startDate} ${startHours}', finish='${endDate} ${endHours}' WHERE id=${id};`)
+      .then(()=> {
+        res.redirect('/managetourneys/?success=1');
+      })
+      .catch((err) => {
+        console.log(err);
+      })
+    }
   });
 
   app.post("/banned", async function (req, res) {
@@ -128,6 +175,16 @@ export default function startServer() {
 
   app.delete("/banned/:username", async function (req, res) {
     res.send(await unbanPerson(req.params.username));
+  });
+
+  app.delete("/tourneys/:id", async function (req, res) {
+    queryDatabase("DELETE FROM tourneys WHERE id=" + req.params.id)
+      .then((resp) => {
+        res.send(JSON.stringify(resp));
+      })
+      .catch((err) => {
+        res.send(JSON.stringify(err));
+      });
   });
 
   app.listen(3000, () => {
