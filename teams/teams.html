@@ -98,14 +98,14 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" aria-current="page" href="/">
-                  <span data-feather="users" class="align-text-bottom"></span>
+                  <span data-feather="check" class="align-text-bottom"></span>
                   Check-In
                 </a>
               </li>
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="#">
-                  <span data-feather="plus" class="align-text-bottom"></span>
-                  Create Teams
+                  <span data-feather="users" class="align-text-bottom"></span>
+                  Teams
                 </a>
               </li>
               <li class="nav-item">
@@ -121,29 +121,67 @@
             integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE"
             crossorigin="anonymous"
           ></script>
-          <script>
-            feather.replace({ "aria-hidden": "true" });
-          </script>
         </nav>
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h1">Elvyn Calderon</h1>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="reload()">Reload</button>
-          </div>
-          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
-              <h2 class="mb-0" style="margin-right: 0.5rem">Randomize Teams</h2>
-              <p class="mb-0" style="margin-left: 0.5rem">Total people checked-in: <span id="noOfPeople">Waiting for server...</span></p>
-            </div>
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
-              <div class="input-group m-0">
-                <div class="input-group-prepend">
-                  <span class="input-group-text" id="basic-addon1">Teams of:</span>
+              <select
+                class="form-select"
+                id="selectedTourney"
+                name="selectedTourney"
+                style="width: 40rem"
+                onchange="select(this.value)"
+                required
+              >
+                <option value="" selected disabled>--No tourneys--</option>
+              </select>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
+              <h2 class="mb-0" style="margin-right: 0.5rem">Teams</h2>
+              <p class="mb-0" style="margin-left: 0.5rem">Total: <span id="noOfPeople">Select a tourney</span></p>
+              <p class="mb-0" style="margin-left: 0.5rem">Checked-In: <span id="noOfCheckIns">Select a tourney</span></p>
+              <p class="mb-0" style="margin-left: 0.5rem">Mode: <span id="mode">Select a tourney</span></p>
+            </div>
+
+            <div class="row" style="max-width: 20rem">
+              <div class="row mb-2">
+                <div class="btn-group">
+                  <button
+                    type="button"
+                    id="randomBtn"
+                    class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
+                    onclick="randomizeTeams()"
+                  >
+                    <span data-feather="codesandbox"></span>&nbsp; Randomize
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
+                    onclick="reload()"
+                  >
+                    <span data-feather="refresh-ccw"></span>&nbsp;Reload
+                  </button>
                 </div>
-                <input type="number" class="form-control" style="max-width: 5rem" id="peopleperteam" value="4" min="1" />
               </div>
-              <button class="btn btn-sm btn-outline-secondary" onclick="randomizeTeams()">Randomize</button>
+              <div class="row" id="filterOrRandom">
+                <div class="input-group m-0">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1" style="border-radius: 0"></span>
+                  </div>
+                  <input
+                    type="text"
+                    class="form-control"
+                    style="max-width: 100%"
+                    id="filterTable"
+                    oninput="reload(this.value)"
+                    placeholder="Search..."
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div id="teamsgrid">
@@ -172,8 +210,13 @@
       integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
       crossorigin="anonymous"
     ></script>
+    <script src="/src/luxon.js"></script>
+    <script src="/src/selectedTourney.js"></script>
     <script src="/src/version.js"></script>
     <script src="/src/teamsScript.js"></script>
+    <script>
+      feather.replace({ "aria-hidden": "true" });
+    </script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   </body>
 </html>

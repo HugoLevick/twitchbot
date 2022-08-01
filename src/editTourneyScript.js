@@ -1,16 +1,22 @@
 let params = {};
+let tourney;
+let previous = {};
 new URL(window.location.href).searchParams.forEach((x, y) => {
   params[y] = x;
 });
+const DateTime = luxon.DateTime;
 
 const form = document.querySelector(".needs-validation");
+const randomized = document.getElementById("randomized");
+const mode = document.getElementById("selectMode");
 
 fetch("/tourneys/" + params.id)
   .then((res) => res.json())
-  .then(([tourney]) => {
+  .then(([t]) => {
+    tourney = t;
     form.tourneyName.innerHTML = tourney.name;
-    form.startDate.value = tourney.start.replace(/:[0-9][0-9].[0-9][0-9][0-9]Z/, "");
-    form.endDate.value = tourney.finish.replace(/:[0-9][0-9].[0-9][0-9][0-9]Z/, "");
+    form.startDate.value = tourney.start.replace(/:[0-9][0-9].[0-9][0-9][0-9]-[0-9][0-9]:[0-9][0-9]/, "");
+    form.endDate.value = tourney.finish.replace(/:[0-9][0-9].[0-9][0-9][0-9]-[0-9][0-9]:[0-9][0-9]/, "");
     if (tourney.prize === "no") {
       form.tourneyPrize.value = 0;
     } else {
@@ -22,11 +28,12 @@ fetch("/tourneys/" + params.id)
       form.freeEntry.checked = true;
     }
     form.randomized.checked = tourney.randomized;
+    previous.randomized = tourney.randomized;
     form.selectedMode.value = tourney.mode;
+    previous.mode = tourney.mode;
     form.tourneyLink.value = tourney.link;
     form.action = "/tourneys/" + params.id;
     form.id.value = params.id;
-    console.log(form.action);
   });
 
 function cancelEdit() {
@@ -34,7 +41,30 @@ function cancelEdit() {
 }
 
 function confirmEdit() {
-  console.log("hola");
+  let start = DateTime.fromISO(form.startDate.value);
+  let end = DateTime.fromISO(form.endDate.value);
+  if (start > end) {
+    Swal.fire("Bad Dates", "End date is greater than start date", "error");
+    return;
+  }
+  if (previous.randomized != form.randomized.checked || previous.mode !== form.selectedMode.value) {
+    Swal.fire({
+      title: "Warning",
+      text: "These changes will erase the current people signed up, continue?",
+      icon: "question",
+      showConfirmButton: true,
+      showCancelButton: true,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        form._resetPeople.value = "1";
+        if (form.checkValidity()) form.submit();
+        else Swal.fire("Some fields are not valid", "Check your information", "error");
+      }
+    });
+  } else {
+    if (form.checkValidity()) form.submit();
+    else Swal.fire("Some fields are not valid", "Check your information", "error");
+  }
 }
 
 function handleChange(value) {

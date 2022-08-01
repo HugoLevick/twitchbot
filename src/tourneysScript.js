@@ -5,15 +5,30 @@ function loadTable(filter) {
   fetch("/tourneys")
     .then((response) => response.json())
     .then((tourneys) => {
-      console.log(tourneys);
+      //Setting the number of Tourneys
+      let noOfTourneys = document.getElementById("noOfTourneys");
+      noOfTourneys.innerHTML = tourneys.length;
+      //Setting the table
       table.innerHTML = "";
       if (tourneys.length > 0) {
         tourneys.forEach((t) => {
           const [date, hourData] = t.start.split("T");
           const [hour, minute] = hourData.split(":");
           if (t.name.match(filterRegExp)) {
-            //prettier-ignore
-            table.innerHTML += `<tr><td>${t.name.length > 15 ? t.name.substring(0, 15) + '...' : t.name}</td><td>${t.entry === 0 ? 'FREE' : `$${t.entry}`}</td><td>${date} ${hour}:${minute}</td><td>${t.prize == '0' ? 'NO' : t.prize}</td><td class="d-flex align-items-center justify-content-center"><button type="button"class="btn btn-sm btn-secondarytext-light btn-outline-secondary fs-6 d-flex align-items-center justify-content-center" onclick="editTourney(${t.id})"><span data-feather="edit"></span>&nbsp;Edit</button>&nbsp;<button type="button"class="btn btn-sm btn-danger text-light fs-6 d-flex align-items-center justify-content-center" onclick="deleteTourney(${t.id})">&nbsp;<span data-feather="trash"></span>&nbsp;</button></td></tr>`;
+            let html = "";
+            html += `<tr><td>${t.name.length > 15 ? t.name.substring(0, 15) + "..." : t.name}</td>`; //Name
+            html += `<td>${t.entry == "0" ? "FREE" : `$${t.entry}`}</td>`; //Entry
+            html += `<td>${date} ${hour}:${minute}</td>`; //Date
+            html += `<td>${t.prize == "0" ? "NO" : t.prize}</td>`; //Prize
+            html += `<td>${t.status === "inprogress" ? "IN PROGRESS" : t.status.toUpperCase()}</td>`; //Status
+            html += `<td class="d-flex align-items-center justify-content-center">`; //Buttons
+            if (t.status !== "ended") {
+              html += `<button type="button"class="btn btn-sm btn-secondarytext-light btn-outline-secondary fs-6 d-flex align-items-center justify-content-center" onclick="editTourney(${t.id})"><span data-feather="edit"></span>&nbsp;Edit</button>&nbsp;`; //Edit
+            } else {
+              html += `<button type="button"class="btn btn-sm btn-success fs-6 d-flex align-items-center justify-content-center" onclick="redirect('/teams?tourneyId=${t.id}')"><span data-feather="search"></span>&nbsp;See Teams</button>&nbsp;`; //See Teams
+            }
+            html += `<button type="button"class="btn btn-sm btn-danger text-light fs-6 d-flex align-items-center justify-content-center" onclick="deleteTourney(${t.id})">&nbsp;<span data-feather="trash"></span>&nbsp;</button></td></tr>`; //Delete
+            table.innerHTML += html;
           }
         });
       } else {
@@ -31,12 +46,6 @@ async function loadTourneys() {
   return await fetch("/tourneys")
     .then((response) => response.json())
     .then((tourneys) => tourneys);
-}
-
-async function setNumberOfTourneys() {
-  let tourneys = await loadTourneys();
-  let noOfTourneys = document.getElementById("noOfTourneys");
-  noOfTourneys.innerHTML = tourneys.length;
 }
 
 function editTourney(id) {
@@ -77,7 +86,10 @@ function deleteTourney(id) {
 
 function reload(filter) {
   loadTable(filter);
-  setNumberOfTourneys();
+}
+
+function redirect(url) {
+  window.location.href = url;
 }
 
 let params = {};

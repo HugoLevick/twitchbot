@@ -1,14 +1,20 @@
+import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import connection, { insertIntoDatabase, queryDatabase, utilities } from "./bot.js";
+import connection, {
+  addToTourney,
+  checkTourneysStatus,
+  insertIntoDatabase,
+  queryDatabase,
+  scheduleTourneys,
+  tourneyLocalT,
+  utilities,
+} from "./bot.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-import express, { query } from "express"; //EXPRESS
 import bodyParser from "body-parser";
-import { link } from "fs";
-import { start } from "repl";
+
 const app = express();
 
 export default function startServer() {
@@ -59,49 +65,74 @@ export default function startServer() {
   app.get("/tourneys", function (req, res) {
     connection.query("SELECT * FROM Tourneys ORDER BY start DESC;", (err, result) => {
       if (err) throw err;
-      res.send(JSON.stringify(result));
+      if (result.length > 0) {
+        tourneyLocalT(result, "iso");
+        res.send(JSON.stringify(result));
+      } else res.send(JSON.stringify([]));
     });
   });
 
-  app.get("/tourneys/:id", function (req, res) {
-    connection.query("SELECT * FROM Tourneys WHERE id=" + req.params.id, (err, result) => {
-      if (err) throw err;
-      res.send(JSON.stringify(result));
-    });
+  app.get("/current/tourneys", async function (req, res) {
+    queryDatabase("SELECT * FROM tourneys WHERE finish > NOW() ORDER BY start DESC")
+      .then((result) => {
+        for (let t in result) {
+          t = result[t];
+          t = tourneyLocalT(t, "iso");
+        }
+        res.send(JSON.stringify(result));
+      })
+      .catch((err) => {
+        console.log(err);
+        res.send(JSON.stringify([]));
+      });
+  });
+
+  app.get("/tourneys/:id", async function (req, res) {
+    queryDatabase("SELECT * FROM Tourneys WHERE id=" + req.params.id)
+      .then((result) => {
+        if (result.length > 0) {
+          tourneyLocalT(result, "iso");
+          res.send(JSON.stringify(result));
+        } else res.send(JSON.stringify([]));
+      })
+      .catch((err) => {
+        console.log(err);
+        res.send(JSON.stringify(false));
+      });
   });
 
   app.get("/edit/tourney/", function (req, res) {
     res.sendFile(path.join(__dirname, "/../tourneys/edit/editTourney.html"));
   });
 
-  app.put("/people/:id", async function (req, res) {
-    if (req.body.checkin) {
-      res.send(await utilities.functions.checkIn(req.params.id));
+  app.put("/check/:id/:name", async function (req, res) {
+    if (req.body.check === "in") {
+      res.send(await utilities.functions.check(req.params.id, req.params.name, "in"));
     } else {
-      res.send(await utilities.functions.checkOut(req.params.id));
+      res.send(await utilities.functions.check(req.params.id, req.params.name, "out"));
     }
   });
 
   app.post("/people", async function (req, res) {
-    insertIntoDatabase("check_in", "username", `"${req.body.username}"`)
-      .then((response) => {
-        if (response.affectedRows > 0) res.send(JSON.stringify(true));
-        else res.send(JSON.stringify(false));
-      })
-      .catch(async (err) => {
-        switch (err.code) {
-          case "ER_NO_SUCH_TABLE":
-            queryDatabase("CREATE TABLE banned (username varchar(255) unique);").then(async () => {
-              res.send(JSON.stringify([]));
-            });
-            break;
-          case "ER_DUP_ENTRY":
-            res.send(JSON.stringify(false));
-            break;
-          default:
-            console.log(err);
-        }
-      });
+    res.send(await addToTourney(req.body.name, req.body.captain, req.body.members, req.body.id));
+  });
+
+  app.post("/setteams/:id", async function (req, res) {
+    let [people] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + req.params.id);
+    people = people.people;
+    people.set = true;
+    people.teams = req.body.teams;
+    res.send(
+      await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${req.params.id}`)
+        .then(() => {
+          console.log("Randomized teams of tourney " + req.params.id);
+          return true;
+        })
+        .catch((err) => {
+          console.log(`Could not set random teams of tourney ${req.params.id}`, err);
+          return false;
+        })
+    );
   });
 
   app.post("/tourneys", async function (req, res) {
@@ -110,9 +141,11 @@ export default function startServer() {
     const [endDate, endHours] = req.body.endDate.split("T");
 
     //prettier-ignore
-    queryDatabase(`INSERT INTO tourneys (name, start, finish, mode, prize, entry, randomized${tourneyLink ?', link':''}) VALUES ('${tourneyName}', '${startDate} ${startHours}', '${endDate} ${endHours}', '${selectedMode}', '${tourneyPrize !== ''? `${tourneyPrize} ${radiosPrize}` : `no`}', ${freeEntry === 'on' ? '0' : entryFee}, ${randomized === 'on' ? '1' : '0'}${tourneyLink ? `, '${tourneyLink}'` : ''})`)
+    queryDatabase(`INSERT INTO tourneys (name, start, finish, mode, prize, entry, randomized${tourneyLink ?', link':''}) VALUES ('${tourneyName}', '${startDate} ${startHours}', '${endDate} ${endHours}', '${selectedMode}', '${tourneyPrize == 0 ? '0' : `${tourneyPrize} ${radiosPrize}`}', ${freeEntry === 'on' ? '0' : entryFee}, ${randomized === 'on' ? '1' : '0'}${tourneyLink ? `, '${tourneyLink}'` : ''})`)
     .then(()=>{
       console.log('Created tourney ' + tourneyName);
+      checkTourneysStatus(req.params.id);
+      scheduleTourneys();
       res.redirect("/managetourneys");
     })
     .catch((err)=>{
@@ -128,8 +161,10 @@ export default function startServer() {
       const [startDate, startHours] = req.body.startDate.split("T");
       const [endDate, endHours] = req.body.endDate.split("T");
       //prettier-ignore
-      queryDatabase(`UPDATE tourneys SET name='${tourneyName}', prize='${tourneyPrize == 0? '0' : `${tourneyPrize} ${radiosPrize}`}', entry=${freeEntry === 'on' ? '0' : entryFee}, mode='${selectedMode}', link='${tourneyLink}', randomized=${randomized === 'on' ? 1 : 0}, start='${startDate} ${startHours}', finish='${endDate} ${endHours}' WHERE id=${id};`)
+      queryDatabase(`UPDATE tourneys SET name='${tourneyName}', prize='${tourneyPrize == 0? '0' : `${tourneyPrize} ${radiosPrize}`}', entry=${freeEntry === 'on' ? '0' : entryFee}, mode='${selectedMode}', link='${tourneyLink}', randomized=${randomized === 'on' ? 1 : 0}, start='${startDate} ${startHours}', finish='${endDate} ${endHours}'${req.body._resetPeople == 1 ? `, people=('{}')`:''} WHERE id=${id};`)
       .then(()=> {
+        checkTourneysStatus(req.params.id);
+        scheduleTourneys();
         res.redirect('/managetourneys/?success=1');
       })
       .catch((err) => {
@@ -139,18 +174,13 @@ export default function startServer() {
   });
 
   app.post("/banned", async function (req, res) {
-    insertIntoDatabase("banned", "username", `"${req.body.username}"`)
+    queryDatabase(`INSERT INTO banned(username) VALUES('${req.body.username}')`)
       .then((response) => {
         if (response.affectedRows > 0) res.send(JSON.stringify(true));
         else res.send(JSON.stringify(false));
       })
       .catch(async (err) => {
         switch (err.code) {
-          case "ER_NO_SUCH_TABLE":
-            queryDatabase("CREATE TABLE banned (username varchar(255));").then(async () => {
-              res.send(JSON.stringify([]));
-            });
-            break;
           case "ER_DUP_ENTRY":
             res.send(JSON.stringify(false));
             break;
@@ -160,12 +190,21 @@ export default function startServer() {
       });
   });
 
-  app.delete("/people", async function (req, res) {
-    res.send(await utilities.functions.clearTourney());
+  app.delete("/people/:id", async function (req, res) {
+    res.send(
+      await queryDatabase("UPDATE tourneys SET people=('{}') WHERE id=" + req.params.id)
+        .then(() => {
+          return true;
+        })
+        .catch((err) => {
+          console.log(err);
+          return false;
+        })
+    );
   });
 
-  app.delete("/people/:username", async function (req, res) {
-    res.send(await utilities.functions.removePersonFromTourney(req.params.username));
+  app.delete("/people/:id/:name", async function (req, res) {
+    res.send(await utilities.functions.removeFromTourney(req.params.name, req.params.id));
   });
 
   app.delete("/banned", async function (req, res) {

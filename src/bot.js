@@ -2,9 +2,13 @@ import tmi from "tmi.js";
 import mysql from "mysql2";
 import startServer from "./httpServer.js";
 import mysqlCredentials from "../mySQLCredentials.js";
-import dbStructure from "./dbStructure.js";
+import { scheduleJob } from "node-schedule";
+import { DateTime } from "luxon";
+import commands from "./commands.js";
+import Solo, { Team } from "./teamClass.js";
 
-let commands = [];
+export let upcomingT = [];
+export let schedules = {};
 
 const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 
@@ -33,11 +37,9 @@ export let utilities = {
   functions: {
     isOwner: isOwner,
     isModOrOwner: isModOrOwner,
-    addPersonToTourney: addPersonToTourney,
-    removePersonFromTourney: removePersonFromTourney,
-    clearTourney: clearTourney,
-    checkIn: checkIn,
-    checkOut: checkOut,
+    addToTourney: addToTourney,
+    removeFromTourney: removeFromTourney,
+    check: check,
     toggleCheckIns: toggleCheckIns,
   },
 };
@@ -65,11 +67,14 @@ client.on("chat", (target, ctx, message) => {
     const [command, params] = stripCommand(message.trim());
     utilities.params = params;
     console.log(`${ctx.username}: ${command}`);
-    commands.forEach((comm) => {
+    commands.every((comm) => {
       if (command.match(new RegExp(comm.trigger, "i"))) {
-        if (comm.type === "action") comm.action(ctx, utilities);
-        else console.log("in progress");
+        if (comm.type === "action") {
+          comm.action(ctx, utilities);
+          return false;
+        } else console.log("in progress");
       }
+      return true;
     });
   }
 });
@@ -95,21 +100,87 @@ function stripCommand(message) {
   return [command, split.splice(startsAt + 1, split.length)];
 }
 
-async function addPersonToTourney(username) {
-  const banned = await retrieveBanned().then((res) => {
-    return res.map((p) => p.username);
-  });
-  if (!banned.includes(username)) {
-    const response = await new Promise((resolve, reject) => {
-      connection.query(`INSERT INTO check_in(username, checkin) VALUES("${username}", 0);`, (err) => {
-        if (err) reject(err);
-        else resolve(true);
-      });
+export async function addToTourney(name, captain, members, tourneyId) {
+  return await new Promise(async (resolve) => {
+    const banned = await retrieveBanned().then((res) => {
+      return res.map((p) => p.username);
     });
-    return [response, "normal"];
-  } else {
-    return [false, "banned"];
+    if (!banned.includes(captain)) {
+      const response = await new Promise(async (res, rej) => {
+        let [data] = await queryDatabase("SELECT people, mode FROM tourneys WHERE id=" + tourneyId).catch((err) => {
+          console.log(err);
+        });
+        let { people, mode } = data;
+        if (people.og === undefined) {
+          people.set = false;
+          people.og = {};
+        }
+        let signedUp = people.og;
+        if (isInTourney(signedUp, captain ?? name)[0]) {
+          rej(false);
+          return;
+        }
+        if (mode === "solos") {
+          let keys = Object.keys(signedUp);
+          let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
+          signedUp[key] = new Solo(name);
+        } else if (mode) {
+          let keys = Object.keys(signedUp);
+          let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
+          signedUp[key] = new Team(name, captain, [captain, ...members], key);
+        }
+        queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
+          .then(() => {
+            res(true);
+            return;
+          })
+          .catch((err) => {
+            console.log(err);
+            rej(false);
+          });
+      }).catch((err) => err);
+      resolve([response, "normal"]);
+    } else {
+      resolve([false, "banned"]);
+    }
+  });
+}
+
+export function isInTourney(people, username) {
+  let userRegex = new RegExp(username);
+  for (let team in people) {
+    let key = team;
+    team = people[team];
+    let name, members;
+    if (team.members) {
+      members = team.members.filter((m) => m !== undefined && m !== null);
+      members = members.join(" ");
+    } else members = "";
+    if (typeof team.name === "number") {
+      name = team.name.toString();
+    } else if (typeof team.name === "string") {
+      name = team.name;
+    }
+    if (team.captain?.match(userRegex) || name.match(userRegex) || members.match(userRegex)) {
+      return [true, key];
+    }
   }
+  return [false, undefined];
+}
+
+export async function obtainPeople(tourneyId) {
+  return new Promise(async (resolve) => {
+    let [data] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + tourneyId).catch((err) => {
+      console.log(err);
+    });
+    let { people } = data;
+    if (people.og === undefined) {
+      people.set = false;
+      people.og = {};
+    }
+    if (people) resolve(people);
+    else resolve({});
+  });
 }
 
 function toggleCheckIns() {
@@ -117,20 +188,58 @@ function toggleCheckIns() {
   return utilities.checkInsAllowed;
 }
 
-async function checkIn(username) {
-  const response = await updateDatabase("Check_In", "checkin", 1, "username", `"${username}"`);
-  if (response.affectedRows > 0) return true;
-  else return false;
+async function check(tourneyId, username, inOrOut) {
+  return await new Promise(async (resolve, reject) => {
+    let [data] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + tourneyId).catch((err) => {
+      console.log(err);
+    });
+    let signedUp = data.people.og;
+
+    for (let team in signedUp) {
+      const key = team;
+      team = signedUp[key];
+      if (team.captain === username || team.name === username) {
+        signedUp[key].in = inOrOut === "in" ? true : false;
+        await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(data.people)}') WHERE id=${tourneyId}`)
+          .then(() => {
+            resolve(true);
+          })
+          .catch((err) => {
+            console.log(err);
+            reject(false);
+          });
+      }
+    }
+    reject(false);
+  }).catch((err) => err);
 }
 
-async function checkOut(username) {
-  const response = await updateDatabase("Check_In", "checkin", 0, "username", `"${username}"`);
-  if (response.affectedRows > 0) return true;
-  else return false;
-}
+async function removeFromTourney(username, tourneyId) {
+  return await new Promise(async (resolve, reject) => {
+    let [data] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + tourneyId).catch((err) => {
+      console.log(err);
+    });
+    let signedUp = data.people.og;
 
-async function removePersonFromTourney(username) {
-  return await deleteFromDatabase("Check_In", "username", `"${username}"`);
+    for (let team in signedUp) {
+      const key = team;
+      team = signedUp[key];
+      if (team.captain === username || team.name === username) {
+        const teamName = team?.name;
+        signedUp[key] = undefined;
+        await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(data.people)}') WHERE id=${tourneyId}`)
+          .then(() => {
+            resolve([true, teamName]);
+          })
+          .catch((err) => {
+            console.log(err);
+            reject([false, "unexpected"]);
+          });
+        return;
+      }
+    }
+    reject([false, "not-found"]);
+  }).catch((err) => err);
 }
 
 async function retrieveBanned() {
@@ -143,11 +252,6 @@ async function retrieveBanned() {
     }
   });
   return res;
-}
-
-async function clearTourney() {
-  await queryDatabase("TRUNCATE check_in");
-  return true;
 }
 
 async function deleteFromDatabase(table, field, value) {
@@ -188,47 +292,156 @@ export async function queryDatabase(sql) {
 }
 
 async function checkDbValidity() {
-  let tables = await queryDatabase("SHOW TABLES");
-  tables = tables.map((table) => table["Tables_in_" + toLowerCase(bottedChannel)]); //OBTAIN TABLE NAMES
-  return await new Promise(async (resolve, reject) => {
-    //prettier-ignore
-    for(let table in tables){ //FOR EACH TABLE CHECK EACH FIELD
-      const structure = await queryDatabase("DESCRIBE " + tables[table]);
-      const intendedStr = dbStructure[tables[table]];
-      //prettier-ignore
-      for(let field in intendedStr){ //FOR EACH FIELD CHECK EACH PROPERTY
-        const dbField = structure[field];
-        const intendedF = intendedStr[field];
-        const keys1 = Object.keys(dbField);
-        const keys2 = Object.keys(intendedF);
-        if (keys1.length !== keys2.length) {
-          reject([
-            "column-doesnt-exist",
-            {
-              column: intendedF.Field,
-              field: intendedF[key],
-              table: tables[table],
-              key: key,
-            },
-            `Keys are not the same ${key} ${dbField[key]} ${intendedF[key]}}`,
-          ]);
-          return 0;
-        }
-        for (let key of keys1) {
-          if (dbField[key] !== intendedF[key]) {
-            reject(['column-property',{column: intendedF, table: tables[table]},`Property is not the same ${key} database: ${dbField[key]} intended: ${intendedF[key]}`]);
-            return 0;
-          }
-        }
-      }
+  return new Promise(async (resolve) => {
+    let [ver] = await queryDatabase("SELECT * FROM version").catch(() => "0");
+    ver = ver.version;
+    if (ver != "1.2") {
+      console.log("Version mismatch, updating database...");
+      await queryDatabase("drop database " + bottedChannel);
+      await createDatabase();
+
+      console.log("Done");
     }
-    resolve(true);
+    resolve();
   });
 }
 
-function createColumnSQL({ table, column }) {
-  //prettier-ignore
-  return `ALTER TABLE ${table} MODIFY COLUMN ${column.Field} ${column.Type} ${column.Null === "YES" ? "" : "NOT NULL"} ${column.Primary === "PRI" ? "PRIMARY" : ""} DEFAULT '${column.Default}'`;
+export function tourneyLocalT(tourneys, type) {
+  try {
+    tourneys.forEach((t) => {
+      const startLocal = DateTime.fromISO(t.start.toISOString(), { zone: "UTC" }).toLocal();
+      const endLocal = DateTime.fromISO(t.finish.toISOString(), { zone: "UTC" }).toLocal();
+      if (type === "iso") {
+        t.start = startLocal.toISO();
+        t.finish = endLocal.toISO();
+      } else if (type === "jsdate") {
+        t.start = startLocal.toJSDate();
+        t.finish = endLocal.toJSDate();
+      }
+    });
+    return tourneys;
+  } catch {
+    const startLocal = DateTime.fromISO(tourneys.start.toISOString(), { zone: "UTC" }).toLocal();
+    const endLocal = DateTime.fromISO(tourneys.finish.toISOString(), { zone: "UTC" }).toLocal();
+    if (type === "iso") {
+      tourneys.start = startLocal.toISO();
+      tourneys.finish = endLocal.toISO();
+    } else if (type === "jsdate") {
+      tourneys.start = startLocal.toJSDate();
+      tourneys.finish = endLocal.toJSDate();
+    }
+    return tourneys;
+  }
+}
+
+export async function checkTourneysStatus(id) {
+  return new Promise(async (resolve, reject) => {
+    console.log("Checking status of " + (id ? `tourney ${id}` : "all tourneys"));
+    const now = new Date();
+    let status;
+    if (id) {
+      const [tourney] = tourneyLocalT(await queryDatabase(`SELECT * FROM tourneys WHERE id=${id}`), "jsdate");
+      status = tourney.status;
+
+      switch (tourney.status) {
+        case "pending":
+          if (tourney.start <= now && tourney.finish > now) {
+            status = "inprogress";
+          } else if (tourney.finish < now) {
+            status = "ended";
+          }
+          break;
+        case "inprogress":
+          if (tourney.finish < now) {
+            status = "ended";
+          } else if (tourney.start > now) {
+            status = "pending";
+          }
+          break;
+        case "ended":
+          if (tourney.start > now) {
+            status = "pending";
+          } else if (tourney.start <= now && tourney.finish > now) {
+            status = "inprogress";
+          }
+          break;
+      }
+      if (status != tourney.status) {
+        queryDatabase(`UPDATE tourneys SET status='${status}' WHERE id=` + tourney.id)
+          .then(() => {
+            console.log("Tourney " + tourney.id + " has been set to " + status.toUpperCase());
+          })
+          .catch((err) => {
+            reject(err);
+            return;
+          });
+      }
+    } else {
+      const tourneys = tourneyLocalT(await queryDatabase("SELECT * FROM tourneys"), "jsdate");
+      for (let tourney in tourneys) {
+        tourney = tourneys[tourney];
+        status = tourney.status;
+
+        switch (tourney.status) {
+          case "pending":
+            if (tourney.start <= now && tourney.finish > now) {
+              status = "inprogress";
+            } else if (tourney.finish < now) {
+              status = "ended";
+            }
+            break;
+          case "inprogress":
+            if (tourney.finish < now) {
+              status = "ended";
+            } else if (tourney.start > now) {
+              status = "pending";
+            }
+            break;
+          case "ended":
+            if (tourney.start > now) {
+              status = "pending";
+            } else if (tourney.start <= now && tourney.finish > now) {
+              status = "inprogress";
+            }
+            break;
+        }
+
+        if (status != tourney.status) {
+          queryDatabase(`UPDATE tourneys SET status='${status}' WHERE id=` + tourney.id)
+            .then(() => {
+              console.log("Tourney " + tourney.id + " has been set to " + status.toUpperCase());
+            })
+            .catch((err) => {
+              reject(err);
+            });
+        }
+      }
+    }
+    resolve("Checked tourney status!");
+  });
+}
+
+export async function scheduleTourneys() {
+  return new Promise(async (resolve) => {
+    console.log("Scheduling all tourneys");
+    upcomingT = tourneyLocalT(await queryDatabase("SELECT * FROM TOURNEYS WHERE finish > NOW() ORDER BY start ASC;"), "jsdate");
+    console.log(`${upcomingT.length} tourney${upcomingT.length == 1 ? "s" : ""} in the horizon!`);
+    if (upcomingT.length > 0) {
+      for (let tourney in upcomingT) {
+        tourney = upcomingT[tourney];
+        const startSchedule = scheduleJob(tourney.start, async () => {
+          await queryDatabase("UPDATE tourneys SET status='inprogress' WHERE id =" + tourney.id);
+          console.log(`Tourney ${tourney.name.length > 15 ? tourney.name.substring(0, 15) + "..." : tourney.name} has started!`);
+        });
+        const endSchedule = scheduleJob(tourney.finish, async () => {
+          await queryDatabase("UPDATE tourneys SET status='ended' WHERE id =" + tourney.id);
+          console.log(`Tourney ${tourney.name.length > 15 ? tourney.name.substring(0, 15) + "..." : tourney.name} has ended!`);
+        });
+        schedules[tourney.id] = { startSchedule: startSchedule, endSchedule: endSchedule };
+      }
+    }
+    resolve("Scheduled!");
+  });
 }
 
 const connection = mysql.createConnection({
@@ -239,51 +452,40 @@ const connection = mysql.createConnection({
 
 export default connection;
 
+async function createDatabase() {
+  return new Promise(async (resolve, reject) => {
+    await queryDatabase(`USE ${bottedChannel};`).catch(async () => {
+      console.log(`Creating database ${bottedChannel}...`);
+      //prettier-ignore
+      await queryDatabase(`CREATE DATABASE ${bottedChannel};`).catch((err)=>reject(err));
+      //prettier-ignore
+      await queryDatabase(`USE ${bottedChannel};`).catch((err)=>reject(err));
+      //prettier-ignore
+      await queryDatabase("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize VARCHAR(50) NOT NULL DEFAULT '0', entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, link VARCHAR(511), people JSON NOT NULL DEFAULT ('{}'), status VARCHAR(10) NOT NULL DEFAULT 'pending', PRIMARY KEY(id));").catch((err)=>reject(err));
+
+      //prettier-ignore
+
+      await queryDatabase("CREATE TABLE banned (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-');").catch((err) => reject(err));
+
+      await queryDatabase("CREATE TABLE version (version VARCHAR(20) NOT NULL DEFAULT '1.0');").catch((err) => reject(err));
+
+      await queryDatabase('INSERT INTO version VALUES("1.2")');
+
+      console.log("Database created!");
+      console.log(`Using database ${bottedChannel}`);
+    });
+    resolve();
+  });
+}
+
 connection.connect(async (err) => {
   if (err) throw err;
   console.log("Connected to database");
-  new Promise((resolve, reject) => {
-    connection.query(`USE ${bottedChannel};`, (err) => {
-      if (err) {
-        console.log(`Creating database ${bottedChannel}...`);
-        //prettier-ignore
-        connection.query(`CREATE DATABASE ${bottedChannel};`, (err) => {if (err) reject( err);});
-        //prettier-ignore
-        connection.query(`USE ${bottedChannel};`, (err) => {if (err) reject( err)});
-        //prettier-ignore
-        connection.query("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize VARCHAR(50) NOT NULL DEFAULT '0', entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, link VARCHAR(511), people JSON NOT NULL DEFAULT ('{}'), PRIMARY KEY(id));", (err) => {
-         if (err) reject( err);
-        });
-        //prettier-ignore
-        connection.query("CREATE TABLE check_in (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-', team JSON NOT NULL DEFAULT (JSON_ARRAY()), checkin BOOLEAN NOT NULL DEFAULT 0);", (err) => {
-         if (err){
-          console.log(err);
-          reject(err);
-        };
-        });
-        connection.query("CREATE TABLE banned (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-');", (err) => {
-          if (err) reject(err);
-        });
-        connection.query("CREATE TABLE version (version VARCHAR(20) NOT NULL DEFAULT '1.0');");
-        console.log("Database created!");
-      }
-      console.log(`Using database ${bottedChannel}`);
-
-      resolve();
-    });
-  })
+  await createDatabase()
     .then(async () => {
-      // await checkDbValidity()
-      //   .then((version) => {
-      //     console.log("Database has been validated v" + version);
-      //     startServer();
-      //   })
-      //   .catch(async (err) => {
-      //     console.log(
-      //       "------------------------------------------------------------------------\n\nDATABASE DOES NOT MATCH THE VERSION. SERVER HAS NOT BEEN INITIALIZED... BEGINNING DATABASE UPDATE\n\n--------------------------------------------\n" +
-      //         err[2]
-      //     );
-      //   });
+      await checkDbValidity();
+      await checkTourneysStatus().catch((err) => console.log(err));
+      await scheduleTourneys().catch((err) => console.log(err));
       startServer();
     })
     .catch((err) => {

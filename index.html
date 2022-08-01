@@ -104,14 +104,14 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="/#">
-                  <span data-feather="users" class="align-text-bottom"></span>
+                  <span data-feather="check" class="align-text-bottom"></span>
                   Check-In
                 </a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" aria-current="page" href="/teams/">
-                  <span data-feather="plus" class="align-text-bottom"></span>
-                  Create Teams
+                  <span data-feather="users" class="align-text-bottom"></span>
+                  Teams
                 </a>
               </li>
               <li class="nav-item">
@@ -130,45 +130,75 @@
         </nav>
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3 border-bottom">
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h1">Elvyn Calderon</h1>
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
-              <div class="input-group m-0">
-                <div class="input-group-prepend">
-                  <span class="input-group-text" id="basic-addon1">Filter:</span>
-                </div>
-                <input
-                  type="text"
-                  class="form-control"
-                  style="max-width: 10rem"
-                  id="filterTable"
-                  oninput="reload(this.value)"
-                  placeholder="Search..."
-                />
-              </div>
+              <select
+                class="form-select"
+                id="selectedTourney"
+                name="selectedTourney"
+                style="width: 40rem"
+                onchange="select(this.value)"
+                required
+              >
+                <option value="" selected disabled>--No tourneys--</option>
+              </select>
             </div>
           </div>
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
               <h2 class="mb-0" style="margin-right: 0.5rem">Sign-Up</h2>
-              <p class="mb-0" style="margin-left: 0.5rem">Total: <span id="noOfPeople">Loading...</span></p>
-              <p class="mb-0" style="margin-left: 0.5rem">Checked-In: <span id="noOfCheckIns">Loading...</span></p>
+              <p class="mb-0" style="margin-left: 0.5rem">Total: <span id="noOfPeople">Select a tourney</span></p>
+              <p class="mb-0" style="margin-left: 0.5rem">Checked-In: <span id="noOfCheckIns">Select a tourney</span></p>
             </div>
-            <div class="btn-group">
-              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearList()">Clear List</button>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
-                onclick="addPerson()"
-              >
-                <span data-feather="user-plus"></span>&nbsp;Add Person
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="reload()">Reload</button>
+
+            <div class="row" style="max-width: 22rem">
+              <div class="row mb-2">
+                <div class="btn-group">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
+                    onclick="clearList()"
+                  >
+                    <span data-feather="file"></span>&nbsp;Clear List
+                  </button>
+                  <button
+                    type="button"
+                    id="btnAdd"
+                    class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
+                    onclick="addToTourney()"
+                  >
+                    <span data-feather="user-plus"></span>&nbsp;Add
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
+                    onclick="reload()"
+                  >
+                    <span data-feather="refresh-ccw"></span>&nbsp;Reload
+                  </button>
+                </div>
+              </div>
+              <div class="row">
+                <div class="input-group m-0">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1" style="border-radius: 0">Filter:</span>
+                  </div>
+                  <input
+                    type="text"
+                    class="form-control"
+                    style="max-width: 100%"
+                    id="filterTable"
+                    oninput="reload(this.value)"
+                    placeholder="Search..."
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div class="table-responsive">
             <table class="table table-striped table-sm">
-              <thead>
+              <thead id="thead">
                 <tr>
                   <th scope="col">Username</th>
                   <th scope="col">Checked In</th>
@@ -177,19 +207,9 @@
               </thead>
               <tbody class="fs-5" id="checkintable">
                 <tr>
-                  <td>There's no one here</td>
+                  <td>SELECT A TOURNEY</td>
                   <td>-</td>
-                  <td class="d-flex align-items-center justify-content-center">
-                    <button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary" style="margin-right: 0.5rem">
-                      KICK
-                    </button>
-                    <button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary" style="margin-left: 0.5rem">
-                      CHECK OUT
-                    </button>
-                    <button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary" style="margin-left: 0.5rem">
-                      BAN
-                    </button>
-                  </td>
+                  <td class="d-flex align-items-center justify-content-center">NO ACTIONS AVAILABLE</td>
                 </tr>
               </tbody>
             </table>
@@ -204,6 +224,8 @@
       crossorigin="anonymous"
     ></script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/src/luxon.js"></script>
+    <script src="/src/selectedTourney.js"></script>
     <script src="/src/version.js"></script>
     <script src="/src/indexScript.js"></script>
     <script>
