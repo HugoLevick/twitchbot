@@ -12,6 +12,14 @@ export default class Solo {
   constructor(name) {
     this.name = name;
     this.in = false;
-    this.team = 0;
+  }
+}
+
+export class Draft {
+  constructor(name, tier = 0) {
+    this.name = name;
+    this.in = false;
+    this.tier = tier;
+    this.picked = false;
   }
 }

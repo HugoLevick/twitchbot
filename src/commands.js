@@ -7,7 +7,7 @@ const commands = [
     const nextT = upcomingT[0];
     let teamName;
     let res = [false];
-    if (nextT?.mode === "solos") {
+    if (nextT?.mode === "solos" || nextT?.mode === "draft") {
       res = await addToTourney(username, username, [username], nextT.id);
     } else if (nextT?.mode) {
       let teamSize = 4;
@@ -36,7 +36,7 @@ const commands = [
       res = [false, "no-tourney"];
     }
     if (res[0]) {
-      if (nextT.mode === "solos") {
+      if (nextT.mode === "solos" || nextT.mode === "draft") {
         client.say(target, `@${username} joined the tourney! elvyncHype`);
         console.log(`${username} joined the tourney`);
       } else {
@@ -165,6 +165,9 @@ const commands = [
       case "squads":
         message +=
           "squads tourney, to join type !jointourney TEAM_NAME MEMBER1 MEMBER2 MEMBER3. Whoever creates the team is the captain and they have to check in for the team. Captain is automatically added as a member and doesn't have to be typed";
+        break;
+      case "draft":
+        message += "draft tourney, to join type !jointourney. Remember to check in when Elvyn starts!";
         break;
     }
     client.say(target, message);

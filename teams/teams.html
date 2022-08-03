@@ -66,6 +66,10 @@
         white-space: nowrap;
         -webkit-overflow-scrolling: touch;
       }
+
+      #draftList li:hover {
+        background-color: rgb(211, 211, 211);
+      }
     </style>
   </head>
 
@@ -147,7 +151,7 @@
               <p class="mb-0" style="margin-left: 0.5rem">Mode: <span id="mode">Select a tourney</span></p>
             </div>
 
-            <div class="row" style="max-width: 20rem">
+            <div class="row" style="max-width: 20rem" id="inputBar">
               <div class="row mb-2">
                 <div class="btn-group">
                   <button
@@ -214,6 +218,7 @@
     <script src="/src/selectedTourney.js"></script>
     <script src="/src/version.js"></script>
     <script src="/src/teamsScript.js"></script>
+    <script src="/src/draft.js"></script>
     <script>
       feather.replace({ "aria-hidden": "true" });
     </script>

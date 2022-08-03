@@ -5,6 +5,7 @@ import connection, {
   addToTourney,
   checkTourneysStatus,
   insertIntoDatabase,
+  isInTourney,
   queryDatabase,
   scheduleTourneys,
   tourneyLocalT,
@@ -36,6 +37,10 @@ export default function startServer() {
 
   app.get("/teams", function (req, res) {
     res.sendFile(path.join(__dirname, "/../teams/teams.html"));
+  });
+
+  app.get("/teams/draft", function (req, res) {
+    res.sendFile(path.join(__dirname, "/../teams/draft.html"));
   });
 
   app.get("/bannedpeople", function (req, res) {
@@ -113,8 +118,12 @@ export default function startServer() {
     }
   });
 
+  app.put("/tourneys/:id/people", async function (req, res) {
+    res.send(await editPerson(req.body.username, req.params.id, req.body.edit));
+  });
+
   app.post("/people", async function (req, res) {
-    res.send(await addToTourney(req.body.name, req.body.captain, req.body.members, req.body.id));
+    res.send(await addToTourney(req.body.name, req.body.captain, req.body.members, req.body.id, req.body.tier));
   });
 
   app.post("/setteams/:id", async function (req, res) {
@@ -130,6 +139,21 @@ export default function startServer() {
         })
         .catch((err) => {
           console.log(`Could not set random teams of tourney ${req.params.id}`, err);
+          return false;
+        })
+    );
+  });
+
+  app.post("/draft/set/:id", async function (req, res) {
+    const people = req.body.people;
+    res.send(
+      await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${req.params.id}`)
+        .then(() => {
+          console.log("Set teams of draft tourney " + req.params.id);
+          return true;
+        })
+        .catch((err) => {
+          console.log(`Could not set teams of draft tourney ${req.params.id}`, err);
           return false;
         })
     );
@@ -229,6 +253,29 @@ export default function startServer() {
   app.listen(3000, () => {
     console.log("Server initialized on port 3000(localhost:3000)");
   });
+}
+
+async function editPerson(username, tourneyId, properties = []) {
+  let [people] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + tourneyId);
+  people = people.people;
+  if (people.og === undefined) {
+    people.og = {};
+    people.set = false;
+    people.teams = {};
+  }
+  const signedUp = people.og;
+  const [isIn, key] = isInTourney(signedUp, username);
+  if (isIn) {
+    let person = signedUp[key];
+    properties.forEach((p) => {
+      person[p.property] = p.value;
+    });
+    await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`);
+    console.log("Updated tier of " + username);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 async function unbanPerson(username) {

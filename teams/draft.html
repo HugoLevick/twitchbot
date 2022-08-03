@@ -1,0 +1,58 @@
+<div class="row mt-5 px-5 d-flex align-items-center pb-5 border-bottom">
+  <div class="col">
+    <div class="col d-flex justify-content-center align-items-center">
+      <div class="card" style="width: 17rem">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3>Draft Pick</h3>
+          <!--prettier-ignore-->
+          <input type="text" class="form-control" id="filter" placeholder="Search..." oninput="fillDraftPlayers(this.value)" style="max-width: 35%" />
+        </div>
+        <ul class="list-group list-group-flush overflow-auto" style="max-height: 18rem" id="draftList">
+          <li class="list-group-item">
+            <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>
+              No one has checked in
+              <span class="align-text-bottom" data-feather="arrow-right">></span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col text-center">
+    <div class="d-flex justify-content-center align-items-center">
+      <div class="card" style="width: 17rem">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3>Team</h3>
+          <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveTeam()" disabled>Save Team</button>
+        </div>
+        <ul class="list-group list-group-flush" id="currentList">
+          <li class="list-group-item">
+            <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>
+              Teammate 1
+              <span class="align-text-bottom" data-feather="arrow-left">></span>
+            </button>
+          </li>
+          <li class="list-group-item">
+            <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>
+              Teammate 2
+              <span class="align-text-bottom" data-feather="arrow-left">></span>
+            </button>
+          </li>
+          <li class="list-group-item">
+            <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>
+              Teammate 3
+              <span class="align-text-bottom" data-feather="arrow-left">></span>
+            </button>
+          </li>
+          <li class="list-group-item">
+            <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>
+              Teammate 4
+              <span class="align-text-bottom" data-feather="arrow-left">></span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row mt-4 mb-4" id="draftTeams"></div>

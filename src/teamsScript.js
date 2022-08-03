@@ -6,6 +6,7 @@ let modeLabel = document.getElementById("mode");
 let grid = document.getElementById("teamsgrid");
 let filterOrRandom = document.getElementById("filterOrRandom");
 let peoplePerTeam = document.getElementById("peopleperteam");
+let inputBar = document.getElementById("inputBar");
 const DateTime = luxon.DateTime;
 
 async function loadPeople() {
@@ -40,7 +41,7 @@ async function loadTeams(filter) {
         }
         //prettier-ignore
         modeLabel.innerHTML = `${tourney.randomized ? "Randomized" : "Set"} ${tourney.mode.charAt(0).toUpperCase() + tourney.mode.slice(1)}`;
-        if (tourney && (!tourney.randomized || tourney.people.set)) {
+        if (tourney && (!tourney.randomized || tourney.people.set) && tourney.mode != "draft") {
           const keys = Object.keys(teams);
           const numberOfTeams = keys.length;
           let html = '<div class="row mt-4 mb-4">';
@@ -60,6 +61,15 @@ async function loadTeams(filter) {
           if (!tourney.randomized) {
             randomBtn.disabled = true;
           }
+        } else if (tourney?.mode === "draft") {
+          fetch("/teams/draft")
+            .then((res) => res.text())
+            .then((html) => {
+              teams = tourney.people.teams ?? {};
+              grid.innerHTML = html;
+              reloadDraft();
+              feather.replace({ "aria-hidden": "true" });
+            });
         }
         resolve();
       });
@@ -136,6 +146,67 @@ async function randomizeTeams() {
           }
           html += "</div>";
           grid.innerHTML = html;
+        } else if (answer && tourney.mode === "draft") {
+          tieredTeams = tourney.people.og;
+          let tiers = {};
+          let keys = Object.keys(tieredTeams);
+          for (let key in keys) {
+            key = keys[key];
+            person = tieredTeams[key];
+            if (person && person.in) {
+              if (tiers[person.tier] === undefined) tiers[person.tier] = [];
+              tiers[person.tier] = [...tiers[person.tier], person];
+            }
+          }
+          let t1answer = true;
+          if (tiers[Object.keys(tiers)[0]].length < checked / Object.keys(tiers).length) {
+            t1answer = await Swal.fire({
+              title: "Not enought Tier 1's",
+              text: "Not all teams will have a T1 player, continue?",
+              icon: "warning",
+              showConfirmButton: true,
+              showCancelButton: true,
+            }).then(async (result) => {
+              if (result.isConfirmed) {
+                return true;
+              }
+            });
+          }
+          if (t1answer) {
+            let random;
+            let randomMembers = [];
+            let randomTeams = {};
+            console.log(tiers);
+            for (let i = 0, j = 0; i < checked / Object.keys(tiers).length; i++, j++) {
+              keys = Object.keys(tiers);
+              randomMembers = [];
+              for (let key in keys) {
+                key = keys[key];
+                let peopleInTier = tiers[key].length;
+                if (peopleInTier > 0) {
+                  random = Math.floor(Math.random() * peopleInTier);
+                  let [randomPerson] = tiers[key].splice(random, 1);
+                  randomPerson.picked = true;
+                  randomMembers.push(randomPerson);
+                }
+              }
+              teamKeys = Object.keys(randomTeams ?? {});
+              teamKey = teamKeys.length > 0 ? teamKeys[teamKeys.length - 1] : ["0"];
+              teamKey = parseInt(teamKey) + 1;
+              console.log(randomMembers);
+              randomTeams[teamKey] = new Team(
+                randomMembers[0].name,
+                randomMembers[0].name,
+                randomMembers.map((m) => m.name),
+                teamKey,
+                true
+              );
+            }
+            tourney.people.teams = { ...randomTeams };
+            console.log(tourney.people.teams);
+            reloadDraft();
+            savePeople();
+          }
         } else if (answer) {
           let captains = [];
           let currentMembers = [];
@@ -180,24 +251,24 @@ async function randomizeTeams() {
           grid.innerHTML = html;
         }
         if (answer) {
-          fetch(`/setteams/${tourney.id}`, {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ teams: newTeams }),
-          })
-            .then((res) => res.json())
-            .then((res) => {
-              if (res) {
-                const randomSelect = document.getElementById("randomSelect");
-                randomSelect.innerHTML = search;
-                Swal.fire("Done!", "These will be the teams for this tourney!", "success");
-              } else {
-                Swal.fire("Oops", "Couldn't set the teams", "error");
-              }
-            });
+          // fetch(`/setteams/${tourney.id}`, {
+          //   method: "POST",
+          //   headers: {
+          //     Accept: "application/json",
+          //     "Content-Type": "application/json",
+          //   },
+          //   body: JSON.stringify({ teams: newTeams }),
+          // })
+          //   .then((res) => res.json())
+          //   .then((res) => {
+          //     if (res) {
+          //       const randomSelect = document.getElementById("randomSelect");
+          //       randomSelect.innerHTML = search;
+          //       Swal.fire("Done!", "These will be the teams for this tourney!", "success");
+          //     } else {
+          //       Swal.fire("Oops", "Couldn't set the teams", "error");
+          //     }
+          //   });
         }
       }
     });
@@ -254,21 +325,26 @@ async function reload(filter) {
     if (filter === "/FirstReload/") {
       await loadTeams();
       setNumberOfPeople();
-      nosearch = `  <option value="random">${tourney.mode === "solos" ? "Randomize" : "Fuse teams"}</option>
+      if (tourney?.mode === "draft") {
+        draftTeams = { ...tourney.people.og };
+      }
+      nosearch = `  <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
                     <option value="search" disabled>Cannot search</option>`;
-      search = `  <option value="random">${tourney.mode === "solos" ? "Randomize" : "Fuse teams"}</option>
+      search = `  <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
                   <option value="search">Search</option>`;
-      if (tourney.randomized) {
+      if (tourney.randomized || tourney.mode === "draft") {
         filterOrRandom.innerHTML = `<div class="input-group m-0">
                   <div class="input-group-prepend">
                     <span class="input-group-text" id="labelTeamsOf" style="border-radius: 0">
                       <select style="border:0; background-color:#e9ecef;" id="randomSelect" onchange="handleSelectRandom(this.value)">
-                        <option value="random">${tourney.mode === "solos" ? "Randomize" : "Fuse teams"}</option>
+                        <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
                         <option value="search">Search</option>
                       </select>
                     </span>
                   </div>
-                  <input type="number" class="form-control"style= "max-width: 100%" id="teamsOf" min="1" value="1"/>
+                  <input type="number" class="form-control"style= "max-width: 100%" id="teamsOf" min="1" value="1" ${
+                    tourney.mode === "draft" ? "disabled" : ""
+                  }/>
                 </div>`;
       } else {
         filterOrRandom.innerHTML = `<div class="input-group m-0">
@@ -325,12 +401,16 @@ function handleSelectRandom(value) {
                   <div class="input-group-prepend">
                     <span class="input-group-text" id="labelTeamsOf" style="border-radius: 0">
                       <select style="border:0; background-color:#e9ecef;" id="randomSelect" onchange="handleSelectRandom(this.value)">
-                        <option value="random" selected>${tourney.mode === "solos" ? "Randomize" : "Fuse teams"}</option>
+                        <option value="random" selected>${
+                          tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"
+                        }</option>
                         <option value="search">Search</option>
                       </select>
                     </span>
                   </div>
-                  <input type="number" class="form-control"style= "max-width: 100%" id="teamsOf" min="1" value="1"/>
+                  <input type="number" class="form-control"style= "max-width: 100%" id="teamsOf" min="1" value="1" ${
+                    tourney.mode === "draft" ? "disabled" : ""
+                  }/>
                 </div>`;
       break;
     case "search":
@@ -339,7 +419,7 @@ function handleSelectRandom(value) {
                   <div class="input-group-prepend">
                     <span class="input-group-text" id="labelFilter" style="border-radius: 0">
                       <select style="border:0; background-color:#e9ecef;" id="randomSelect" onchange="handleSelectRandom(this.value)">
-                        <option value="random">${tourney.mode === "solos" ? "Randomize" : "Fuse teams"}</option>
+                        <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
                         <option value="search" selected>Search</option>
                       </select>
                     </span>
@@ -350,7 +430,7 @@ function handleSelectRandom(value) {
 }
 
 class Team {
-  constructor(name, captain, members, key, checked = false) {
+  constructor(name, captain, members, key = 0, checked = false) {
     this.name = name;
     this.captain = captain;
     this.members = members;
@@ -359,10 +439,33 @@ class Team {
   }
 }
 
+function isInTourney(people, username) {
+  let userRegex = new RegExp(`^${username}$`);
+  for (let team in people) {
+    let key = team;
+    team = people[team];
+    let name, members;
+    if (team.members) {
+      members = team.members.filter((m) => m !== undefined && m !== null);
+      members = members.join(" ");
+    } else members = "";
+    if (typeof team.name === "number") {
+      name = team.name.toString();
+    } else if (typeof team.name === "string") {
+      name = team.name;
+    }
+    if (team.captain?.match(userRegex) || name.match(userRegex) || members.match(userRegex)) {
+      return [true, key];
+    }
+  }
+  return [false, undefined];
+}
+
 let nosearch, search;
 let tourney;
 let teams = {};
 let newTeams = {};
+let draftTeams = {};
 let params = {};
 getParams();
 reload("/FirstReload/");

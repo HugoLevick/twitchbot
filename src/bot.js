@@ -5,7 +5,7 @@ import mysqlCredentials from "../mySQLCredentials.js";
 import { scheduleJob } from "node-schedule";
 import { DateTime } from "luxon";
 import commands from "./commands.js";
-import Solo, { Team } from "./teamClass.js";
+import Solo, { Team, Draft } from "./teamClass.js";
 
 export let upcomingT = [];
 export let schedules = {};
@@ -100,7 +100,7 @@ function stripCommand(message) {
   return [command, split.splice(startsAt + 1, split.length)];
 }
 
-export async function addToTourney(name, captain, members, tourneyId) {
+export async function addToTourney(name, captain, members, tourneyId, tier = 0) {
   return await new Promise(async (resolve) => {
     const banned = await retrieveBanned().then((res) => {
       return res.map((p) => p.username);
@@ -124,6 +124,10 @@ export async function addToTourney(name, captain, members, tourneyId) {
           let keys = Object.keys(signedUp);
           let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
           signedUp[key] = new Solo(name);
+        } else if (mode === "draft") {
+          let keys = Object.keys(signedUp);
+          let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
+          signedUp[key] = new Draft(name, tier);
         } else if (mode) {
           let keys = Object.keys(signedUp);
           let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
@@ -147,7 +151,7 @@ export async function addToTourney(name, captain, members, tourneyId) {
 }
 
 export function isInTourney(people, username) {
-  let userRegex = new RegExp(username);
+  let userRegex = new RegExp(`^${username}$`);
   for (let team in people) {
     let key = team;
     team = people[team];

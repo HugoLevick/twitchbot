@@ -4,6 +4,7 @@ let selectedT = document.getElementById("selectedTourney");
 let noOfPeople = document.getElementById("noOfPeople");
 let noOfCheckIns = document.getElementById("noOfCheckIns");
 let btnAdd = document.getElementById("btnAdd");
+let title = document.getElementById("title");
 const DateTime = luxon.DateTime;
 
 function loadTable(filter) {
@@ -21,8 +22,53 @@ function loadTable(filter) {
           if (t.id == params.tourneyId) tourney = t;
         }
 
-        if (tourney && tourney?.mode !== "solos") {
+        if (tourney?.mode === "solos") {
+          //----------------------------------------------------SOLOS-----------------------------------------------------
+          title.innerHTML = "Sign Up - Solos";
+          btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Person';
+          thead.innerHTML =
+            '<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
+          let html = "";
+          let people = [];
+          for (let person in tourney.people.og) {
+            person = tourney.people.og[person];
+            //Set number of people
+            people.push(person);
+            //Load Table
+            if (person.name.match(filterRegExp)) {
+              teamToHTML(person, "solos");
+            }
+          }
+          noOfPeople.innerHTML = people.length;
+          people = people.filter((p) => p.in === true);
+          noOfCheckIns.innerHTML = people.length;
+          table.innerHTML = html;
+          feather.replace({ "aria-hidden": "true" });
+        } else if (tourney?.mode === "draft") {
+          //----------------------------------------------------DRAFT-----------------------------------------------------
+          title.innerHTML = "Sign Up - Draft";
+          btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Person';
+          thead.innerHTML =
+            '<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col">Tier</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
+          let html = "";
+          let teams = [];
+          for (let team in tourney.people.og) {
+            team = tourney.people.og[team];
+            //Set number of teams
+            teams.push(team);
+            //Load Table
+            if (team.name.match(filterRegExp) || team.captain?.match(filterRegExp)) {
+              html += teamToHTML(team, "draft");
+            }
+          }
+          noOfPeople.innerHTML = teams.length;
+          teams = teams.filter((t) => t.in === true);
+          noOfCheckIns.innerHTML = teams.length;
+          table.innerHTML = html;
+          feather.replace({ "aria-hidden": "true" });
+        } else if (tourney) {
           //----------------------------------------------------TEAMS-----------------------------------------------------
+          title.innerHTML = "Sign Up - " + tourney.mode;
           btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Team';
           thead.innerHTML =
             '<tr><th scope="col">Team Name</th><th scope="col">Captain</th><th scope="col">Checked In</th><th scope="col">Members</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
@@ -34,17 +80,7 @@ function loadTable(filter) {
             teams.push(team);
             //Load Table
             if (team.name.match(filterRegExp) || team.captain.match(filterRegExp)) {
-              html += `<tr><td>${team.in ? '<span data-feather="check">' : ""}</span> ${team.name}</td>`; //Name
-              html += `<td>${team.captain}</td>`; //Captain
-              html += `<td>${team.in ? "YES" : "NO"}</td>`; //Checkin
-              html += `<td>${team.members}</td>`; //Members
-              html += `<td class="d-flex align-items-center justify-content-center">`; //Actions td
-              //prettier-ignore
-              html += `<button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary fs-6" style="width: 5rem;"onclick="kick('${team.captain}')"><span data-feather="user-x"></span>&nbsp;KICK</button>`; //Kick button
-              //prettier-ignore
-              html += `<button type="button" class="btn btn-sm ${team.in ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 8rem" onclick="${team.in ? `check('${team.captain}', 'out')` : `check('${team.captain}', 'in')`}">${team.in ? '<span data-feather="user-minus"></span>&nbsp;CHECK OUT' : '<span data-feather="user-check"></span>&nbsp;CHECK IN'}</button>`; //Check In/Out button
-              //prettier-ignore
-              html += `<button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${team.captain}')"><span data-feather="slash"></span>&nbsp;BAN</button></td></tr>`; //Ban button
+              html = teamToHTML(team);
             }
           }
           noOfPeople.innerHTML = teams.length;
@@ -52,35 +88,6 @@ function loadTable(filter) {
           noOfCheckIns.innerHTML = teams.length;
           table.innerHTML = html;
           feather.replace({ "aria-hidden": "true" });
-        } else if (tourney) {
-          //----------------------------------------------------SOLOS-----------------------------------------------------
-          btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Person';
-          let html = "";
-          let people = [];
-          for (let person in tourney.people.og) {
-            person = tourney.people.og[person];
-            //Set number of people
-            people.push(person);
-            //Load Table
-            if (person.name.match(filterRegExp)) {
-              html += `<tr><td>${person.in ? '<span data-feather="check">' : ""}</span> ${person.name}</td>`; //Name
-              html += `<td>${person.in ? "YES" : "NO"}</td>`; //Checkin
-              html += `<td class="d-flex align-items-center justify-content-center">`; //Actions td
-              //prettier-ignore
-              html += `<button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary fs-6" style="width: 5rem;"onclick="kick('${person.name}')"><span data-feather="user-x"></span>&nbsp;KICK</button>`; //Kick button
-              //prettier-ignore
-              html += `<button type="button" class="btn btn-sm ${person.in ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 8rem" onclick="${person.in ? `check('${person.name}', 'out')` : `check('${person.name}', 'in')`}">${person.in ? '<span data-feather="user-minus"></span>&nbsp;CHECK OUT' : '<span data-feather="user-check"></span>&nbsp;CHECK IN'}</button>`; //Check In/Out button
-              //prettier-ignore
-              html += `<button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${person.name}')"><span data-feather="slash"></span>&nbsp;BAN</button></td></tr>`; //Ban button
-            }
-          }
-          noOfPeople.innerHTML = people.length;
-          people = people.filter((p) => p.in === true);
-          noOfCheckIns.innerHTML = people.length;
-          table.innerHTML = html;
-          feather.replace({ "aria-hidden": "true" });
-          thead.innerHTML =
-            '<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
         }
       }
     });
@@ -186,6 +193,16 @@ async function addToTourney() {
         if (tourney?.mode === "solos") {
           title = "What's the username?";
           html = "<input id='addPerson' type='text'/>";
+        } else if (tourney?.mode === "draft") {
+          title = "Add draft player";
+          html = `<label for="username" class="form-label">Username:</label>
+                  <div class="input-group m-0">
+                    <input type="text" class="form-control" id="username" name="username" />
+                    <div class="input-group-prepend">
+                      <span class="input-group-text" style="border-radius: 0">Tier:</span>
+                    </div>
+                    <input type="number" class="form-control" id="personTier" name="personTier" min="1" style="max-width:15%;"/>
+                  </div>`;
         } else {
           title = "Add Team";
           html += `<div class="container mb-3"><label for="teamName" class="form-label">Team Name:</label><input class="form-control" id="teamName" name="teamName">`;
@@ -210,6 +227,31 @@ async function addToTourney() {
                 body: JSON.stringify({
                   name: username,
                   id: tourney.id,
+                }),
+              })
+                .then((res) => res.json())
+                .then((res) => {
+                  if (res[0]) {
+                    Swal.fire("Person added", "", "success");
+                    reload();
+                  } else {
+                    Swal.fire("Couldn't add person", "They might be already in the tourney", "error");
+                    reload();
+                  }
+                });
+            } else if (tourney.mode === "draft") {
+              const username = document.getElementById("username").value;
+              const tier = parseInt(document.getElementById("personTier").value || "0");
+              fetch("/people", {
+                method: "POST",
+                headers: {
+                  Accept: "application/json",
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  name: username,
+                  id: tourney.id,
+                  tier: tier !== NaN ? tier : "0",
                 }),
               })
                 .then((res) => res.json())
@@ -296,6 +338,51 @@ async function clearList() {
         });
     }
   });
+}
+
+function teamToHTML(team, mode = "team") {
+  let html = `<tr><td>${team.in ? '<span data-feather="check">' : ""}</span> ${team.name}</td>`; //Name
+  switch (mode) {
+    case "solos":
+      html += `<td>${team.in ? "YES" : "NO"}</td>`; //Checkin
+      break;
+    case "draft":
+      html += `<td>${team.in ? "YES" : "NO"}</td>`; //Checkin
+      html += `<td><input type="number" value="${team.tier}" style="max-width: 20%; border:0; background-color:rgba(0,0,0,0);" onchange="changeTier('${team.name}',  this.value,${tourney.id})"/></td>`; //Tier
+      break;
+    //prettier-ignore
+    default:
+      html += `<td>${team.captain}</td>`  //Captain
+      html += `<td>${team.in ? "YES" : "NO"}</td>`; //Checkin
+      html += `<td>${team.members}</td>`; //Members
+  }
+  html += `<td class="d-flex align-items-center justify-content-center">`; //Actions td
+  //prettier-ignore
+  html += `<button type="button" class="btn btn-sm btn-danger text-light btn-outline-secondary fs-6" style="width: 5rem;"onclick="kick('${team.name}')"><span data-feather="user-x"></span>&nbsp;KICK</button>`; //Kick button
+  //prettier-ignore
+  html += `<button type="button" class="btn btn-sm ${team.in ? 'btn-secondary' : 'btn-success'} text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 8rem" onclick="${team.in ? `check('${team.name}', 'out')` : `check('${team.name}', 'in')`}">${team.in ? '<span data-feather="user-minus"></span>&nbsp;CHECK OUT' : '<span data-feather="user-check"></span>&nbsp;CHECK IN'}</button>`; //Check In/Out button
+  //prettier-ignore
+  html += `<button type="button" class="btn btn-sm btn-secondary text-light btn-outline-secondary fs-6" style="margin-left: 0.5rem; width: 5rem;" onclick="ban('${team.name}')"><span data-feather="slash"></span>&nbsp;BAN</button></td></tr>`; //Ban button
+  return html;
+}
+
+function changeTier(username, tier, id) {
+  fetch(`/tourneys/${id}/people`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      username: username,
+      id: id,
+      edit: [{ property: "tier", value: tier }],
+    }),
+  })
+    .then((res) => res.json())
+    .then((res) => {
+      if (!res) Swal.fire("ERROR", "There was an error updating the tier", "error");
+    });
 }
 
 function reload(filter) {
