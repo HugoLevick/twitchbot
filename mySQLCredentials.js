@@ -1,6 +1,6 @@
 const mysqlCredentials = {
   host: "localhost",
   user: "root",
-  password: "root",
+  password: "password",
 };
 export default mysqlCredentials;

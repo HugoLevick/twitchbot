@@ -10,7 +10,8 @@ import Solo, { Team, Draft } from "./teamClass.js";
 export let upcomingT = [];
 export let schedules = {};
 
-const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+if (bottedChannel == "h_levick") mysqlCredentials.password = "root";
 
 const options = {
   // options: {
@@ -68,7 +69,7 @@ client.on("chat", (target, ctx, message) => {
     utilities.params = params;
     console.log(`${ctx.username}: ${command}`);
     commands.every((comm) => {
-      if (command.match(new RegExp(comm.trigger, "i"))) {
+      if (command?.match(new RegExp(comm.trigger, "i"))) {
         if (comm.type === "action") {
           comm.action(ctx, utilities);
           return false;
@@ -151,7 +152,7 @@ export async function addToTourney(name, captain, members, tourneyId, tier = 0) 
 }
 
 export function isInTourney(people, username) {
-  let userRegex = new RegExp(`^${username}$`);
+  let userRegex = new RegExp(`\s?${username}\s?`);
   for (let team in people) {
     let key = team;
     team = people[team];

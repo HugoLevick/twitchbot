@@ -117,7 +117,7 @@ const commands = [
     }
   }),
   new Command("!togglecheckins", "", "action", (ctx, { client, target, functions }) => {
-    if (functions.isOwner(ctx)) {
+    if (functions.isModOrOwner(ctx)) {
       const res = functions.toggleCheckIns();
       if (res) {
         client.say(target, `Check-Ins are allowed!`);
@@ -135,11 +135,13 @@ const commands = [
     const [isIn, key] = isInTourney(teams, username); //returns [true/false, key]
     if (isIn) {
       const inTeam = teams[key];
-      if (inTeam.members) {
+      if (inTeam.members && inTeam.in) {
         inTeam.members = inTeam.members.filter((m) => m !== undefined && m !== null);
         client.say(target, `@${username} Team ${inTeam.name} - ${inTeam.members?.join(" / ")}`);
-      } else {
+      } else if (inTeam.in) {
         client.say(target, `@${username} Team ${key}`);
+      } else {
+        client.say(target, `@${username} you're not checked-in`);
       }
       console.log(`${username} is in team ${key}`);
     } else {

@@ -37,6 +37,16 @@ async function loadTeams(filter) {
                 teams = tourney.people.og ?? {};
               }
             }
+            if (!tourney.randomized && tourney.mode !== "draft") {
+              if (!tourney.people.teams) tourney.people.teams = {};
+              let keys = Object.keys(teams);
+              for (let key in keys) {
+                key = keys[key];
+                let team = teams[key];
+                tourney.people.teams[key] = new Team(team.name, team.captain ?? team.name, team.members ?? [team.name], key, true);
+              }
+              teams = tourney.people.teams ?? {};
+            }
           }
         }
         //prettier-ignore
@@ -79,7 +89,7 @@ async function loadTeams(filter) {
 async function randomizeTeams() {
   const randomSelect = document.getElementById("randomSelect");
   randomSelect.innerHTML = nosearch;
-  await reload();
+  reload();
   newTeams = {};
   let teamsOf = parseInt(document.getElementById("teamsOf").value);
   let checked = parseInt(noOfCheckIns.innerHTML);
@@ -176,7 +186,6 @@ async function randomizeTeams() {
             let random;
             let randomMembers = [];
             let randomTeams = {};
-            console.log(tiers);
             for (let i = 0, j = 0; i < checked / Object.keys(tiers).length; i++, j++) {
               keys = Object.keys(tiers);
               randomMembers = [];
@@ -193,7 +202,6 @@ async function randomizeTeams() {
               teamKeys = Object.keys(randomTeams ?? {});
               teamKey = teamKeys.length > 0 ? teamKeys[teamKeys.length - 1] : ["0"];
               teamKey = parseInt(teamKey) + 1;
-              console.log(randomMembers);
               randomTeams[teamKey] = new Team(
                 randomMembers[0].name,
                 randomMembers[0].name,
@@ -203,9 +211,9 @@ async function randomizeTeams() {
               );
             }
             tourney.people.teams = { ...randomTeams };
-            console.log(tourney.people.teams);
             reloadDraft();
             savePeople();
+            randomSelect.innerHTML = search;
           }
         } else if (answer) {
           let captains = [];
@@ -250,25 +258,26 @@ async function randomizeTeams() {
           html += "</div>";
           grid.innerHTML = html;
         }
-        if (answer) {
-          // fetch(`/setteams/${tourney.id}`, {
-          //   method: "POST",
-          //   headers: {
-          //     Accept: "application/json",
-          //     "Content-Type": "application/json",
-          //   },
-          //   body: JSON.stringify({ teams: newTeams }),
-          // })
-          //   .then((res) => res.json())
-          //   .then((res) => {
-          //     if (res) {
-          //       const randomSelect = document.getElementById("randomSelect");
-          //       randomSelect.innerHTML = search;
-          //       Swal.fire("Done!", "These will be the teams for this tourney!", "success");
-          //     } else {
-          //       Swal.fire("Oops", "Couldn't set the teams", "error");
-          //     }
-          //   });
+        if (answer && tourney.mode !== "draft") {
+          tourney.people.teams = newTeams;
+          fetch(`/setteams/${tourney.id}`, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ teams: newTeams }),
+          })
+            .then((res) => res.json())
+            .then((res) => {
+              if (res) {
+                const randomSelect = document.getElementById("randomSelect");
+                randomSelect.innerHTML = search;
+                Swal.fire("Done!", "These will be the teams for this tourney!", "success");
+              } else {
+                Swal.fire("Oops", "Couldn't set the teams", "error");
+              }
+            });
         }
       }
     });
@@ -307,8 +316,8 @@ async function setNumberOfPeople() {
 
 function copyText(team) {
   const btn = document.getElementById("btnteam" + team);
-  const members = newTeams[team]?.members ?? teams[team].members;
-  const name = newTeams[team]?.name ?? teams[team].name;
+  const members = newTeams[team]?.members ?? tourney.people.teams[team].members;
+  const name = newTeams[team]?.name ?? tourney.people.teams[team].name;
   let text = "";
   if (name) text += `(${name}) - `;
   text += members.filter((m) => m !== null && m !== undefined).join(" / ");
@@ -387,7 +396,7 @@ function teamToHTML(team) {
                 <button id="btnteam${team.key}" class="btn btn-outline-primary" onClick="copyText(${team.key})">Copy</button>
               </div>
               <ul class="list-group list-group-flush">
-                ${listMembers(team.members)}
+                ${listMembers(team.members ?? [team.name])}
               </ul>
             </div>
           </div><!--End of col-->`;
@@ -424,7 +433,9 @@ function handleSelectRandom(value) {
                       </select>
                     </span>
                   </div>
-                  <input type="text"class="form-control" style="max-width: 100%"id="filterTable" oninput="reload(this.value)"placeholder="Search..."/>
+                  <input type="text"class="form-control" style="max-width: 100%"id="filterTable" oninput="${
+                    tourney.mode === "draft" ? "reloadDraft" : "reload"
+                  }(this.value)"placeholder="Search..."/>
                 </div>`;
   }
 }

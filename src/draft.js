@@ -1,3 +1,4 @@
+let tierCount;
 let draftList;
 let currentList;
 let saveBtn;
@@ -10,6 +11,7 @@ const defaultHTML = `<li class="list-group-item">
                     </li>`;
 
 function fillDraftPlayers(filter) {
+  tierCount = document.getElementById("tierCount");
   draftList = document.getElementById("draftList");
   const filterRegex = new RegExp(filter || ".*", "i");
   let tiers = {};
@@ -17,23 +19,24 @@ function fillDraftPlayers(filter) {
   for (let key in keys) {
     key = keys[key];
     person = tourney.people.og[key];
-    if (person) {
+    if (person?.in) {
       if (tiers[person.tier] === undefined) tiers[person.tier] = [];
       tiers[person.tier] = [...tiers[person.tier], person];
     }
   }
   keys = Object.keys(tiers);
   let html = "";
+  let tierhtml = "";
   let quant = 0;
   for (let key in keys) {
     key = keys[key];
     people = tiers[key];
+    tierhtml += `<span class="fw-bold">TIER ${key}:</span> ${people.length} players &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
     html += `<div class="card-header d-flex justify-content-between align-items-center">
                 Tier ${key}
             </div>`;
     people.forEach((p) => {
-      console.log(p.in);
-      if (p.in && !p.picked && p.name?.match(filterRegex)) {
+      if (!p.picked && p.name?.match(filterRegex)) {
         html += draftToTeamHTML(p, "draft");
         quant++;
       }
@@ -41,6 +44,7 @@ function fillDraftPlayers(filter) {
   }
   if (quant !== 0) draftList.innerHTML = html;
   else draftList.innerHTML = defaultHTML;
+  tierCount.innerHTML = tierhtml;
   feather.replace({ "aria-hidden": "true" });
 }
 
@@ -144,7 +148,8 @@ function saveTeam() {
   reloadDraft();
 }
 
-function loadDraftTeams() {
+function loadDraftTeams(filter) {
+  let teamRegex = new RegExp(filter || ".*", "i");
   let draftTeams = document.getElementById("draftTeams");
   let html = "";
   currentTeams = tourney.people.teams ?? {};
@@ -156,8 +161,10 @@ function loadDraftTeams() {
       j = 0;
     }
     key = keys[key];
-    html += draftToHTML(currentTeams[key]);
-    j++;
+    if (currentTeams[key].members.join(" ").match(teamRegex)) {
+      html += draftToHTML(currentTeams[key]);
+      j++;
+    }
   }
   draftTeams.innerHTML = html;
 }
@@ -206,7 +213,7 @@ function draftToHTML(team) {
             <button id="btnteam${team.key}" class="btn btn-outline-primary" onClick="copyText(${team.key})">Copy</button>
             <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" onclick="dissolveTeam(${
               team.key
-            })">
+            })" ${tourney.status === "ended" ? "disabled" : ""}>
                 <span data-feather="x">X</span>
             </button>
         </div>
@@ -218,10 +225,10 @@ function draftToHTML(team) {
   </div><!--End of col-->`;
 }
 
-function reloadDraft() {
+function reloadDraft(filter) {
   if (tourney.status !== "ended") {
     fillCurrentTeam();
     fillDraftPlayers();
   }
-  loadDraftTeams();
+  loadDraftTeams(filter);
 }

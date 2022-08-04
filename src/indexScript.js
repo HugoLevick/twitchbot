@@ -36,7 +36,7 @@ function loadTable(filter) {
             people.push(person);
             //Load Table
             if (person.name.match(filterRegExp)) {
-              teamToHTML(person, "solos");
+              html += teamToHTML(person, "solos");
             }
           }
           noOfPeople.innerHTML = people.length;
@@ -48,8 +48,9 @@ function loadTable(filter) {
           //----------------------------------------------------DRAFT-----------------------------------------------------
           title.innerHTML = "Sign Up - Draft";
           btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Person';
+          //prettier-ignore
           thead.innerHTML =
-            '<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col">Tier</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
+            `<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col">Tier <input type="number" class="fs-5" id="personTier" name="personTier" min="0" value="${selectedTier ?? '0'}" style="max-width:15%; border:0" onchange="filterTier(this.value)"/></th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>`;
           let html = "";
           let teams = [];
           for (let team in tourney.people.og) {
@@ -57,7 +58,13 @@ function loadTable(filter) {
             //Set number of teams
             teams.push(team);
             //Load Table
-            if (team.name.match(filterRegExp) || team.captain?.match(filterRegExp)) {
+            let tfilter;
+            if (selectedTier == 0 || selectedTier == undefined) {
+              tfilter = true;
+            } else {
+              tfilter = team.tier == selectedTier;
+            }
+            if ((team.name.match(filterRegExp) || team.captain?.match(filterRegExp)) && tfilter) {
               html += teamToHTML(team, "draft");
             }
           }
@@ -80,7 +87,7 @@ function loadTable(filter) {
             teams.push(team);
             //Load Table
             if (team.name.match(filterRegExp) || team.captain.match(filterRegExp)) {
-              html = teamToHTML(team);
+              html += teamToHTML(team);
             }
           }
           noOfPeople.innerHTML = teams.length;
@@ -91,6 +98,14 @@ function loadTable(filter) {
         }
       }
     });
+}
+
+function filterTier(value) {
+  if (value.match(/^0+/)) {
+    value = value.replace(/^0+/, "");
+  }
+  selectedTier = value;
+  reload();
 }
 
 function kick(username) {
@@ -201,7 +216,7 @@ async function addToTourney() {
                     <div class="input-group-prepend">
                       <span class="input-group-text" style="border-radius: 0">Tier:</span>
                     </div>
-                    <input type="number" class="form-control" id="personTier" name="personTier" min="1" style="max-width:15%;"/>
+                    <input type="number" class="form-control" id="userTier" name="userTier" min="1" style="max-width:15%;"/>
                   </div>`;
         } else {
           title = "Add Team";
@@ -241,7 +256,7 @@ async function addToTourney() {
                 });
             } else if (tourney.mode === "draft") {
               const username = document.getElementById("username").value;
-              const tier = parseInt(document.getElementById("personTier").value || "0");
+              const tier = parseInt(document.getElementById("userTier").value || "0");
               fetch("/people", {
                 method: "POST",
                 headers: {
@@ -367,6 +382,9 @@ function teamToHTML(team, mode = "team") {
 }
 
 function changeTier(username, tier, id) {
+  if (tier.match(/^0+/)) {
+    tier = tier.replace(/^0+/, "");
+  }
   fetch(`/tourneys/${id}/people`, {
     method: "PUT",
     headers: {
@@ -398,6 +416,7 @@ async function getParams() {
   }
 }
 
+let selectedTier;
 let tourney;
 let params = {};
 getParams();
