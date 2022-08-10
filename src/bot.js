@@ -10,7 +10,7 @@ import Solo, { Team, Draft } from "./teamClass.js";
 export let upcomingT = [];
 export let schedules = {};
 
-export const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+export const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 if (bottedChannel == "h_levick") mysqlCredentials.password = "root";
 
 const options = {
@@ -167,9 +167,11 @@ export function isInTourney(people, username) {
       return [true, key];
     }
     if (team.members) {
-      team.members.forEach((m) => {
+      for (let m in team.members) {
+        m = team.members[m];
+        console.log(m);
         if (m.match(userRegex)) return [true, key];
-      });
+      }
     }
   }
   return [false, undefined];
