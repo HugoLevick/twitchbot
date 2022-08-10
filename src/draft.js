@@ -151,19 +151,19 @@ function saveTeam() {
 function loadDraftTeams(filter) {
   let teamRegex = new RegExp(filter || ".*", "i");
   let draftTeams = document.getElementById("draftTeams");
-  let html = "";
+  let html = '<div class="row mt-4 mb-4">';
   currentTeams = tourney.people.teams ?? {};
   let keys = Object.keys(currentTeams);
   let j = 0;
   for (let key in keys) {
-    if (j === 3) {
-      html += '</div><!--End of row--><div class="row mt-4 mb-4">';
-      j = 0;
-    }
     key = keys[key];
     if (currentTeams[key].members.join(" ").match(teamRegex)) {
       html += draftToHTML(currentTeams[key]);
       j++;
+    }
+    if (j === 3) {
+      html += '</div><!--End of row--><div class="row mt-4 mb-4">';
+      j = 0;
     }
   }
   draftTeams.innerHTML = html;
@@ -206,7 +206,7 @@ function dissolveTeam(teamKey) {
 function draftToHTML(team) {
   return `
   <div class="col d-flex justify-content-center align-items-center">
-    <div class="card" style="width: 17rem">
+    <div class="card" style="width: 18rem; max-width:18rem;">
         <div class="card-header d-flex justify-content-between align-items-center">
         <p class="h3">Team ${team.name}</p>
         <div class="btn-group">

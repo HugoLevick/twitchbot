@@ -10,7 +10,7 @@ import Solo, { Team, Draft } from "./teamClass.js";
 export let upcomingT = [];
 export let schedules = {};
 
-const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+export const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 if (bottedChannel == "h_levick") mysqlCredentials.password = "root";
 
 const options = {
@@ -54,7 +54,7 @@ client.on("connected", () => {
 client.on("chat", (target, ctx, message) => {
   if (bots.includes(ctx.username)) return;
   utilities.target = target;
-  const commandRegex = /!\w/;
+  const commandRegex = /^!\w/;
 
   // console.log(target);
   // console.log(ctx);
@@ -118,6 +118,7 @@ export async function addToTourney(name, captain, members, tourneyId, tier = 0) 
         }
         let signedUp = people.og;
         if (isInTourney(signedUp, captain ?? name)[0]) {
+          console.log("already in");
           rej(false);
           return;
         }
@@ -152,22 +153,23 @@ export async function addToTourney(name, captain, members, tourneyId, tier = 0) 
 }
 
 export function isInTourney(people, username) {
-  let userRegex = new RegExp(`\s?${username}\s?`);
+  let userRegex = new RegExp(`^${username}$`, "i");
   for (let team in people) {
     let key = team;
     team = people[team];
-    let name, members;
-    if (team.members) {
-      members = team.members.filter((m) => m !== undefined && m !== null);
-      members = members.join(" ");
-    } else members = "";
+    let name;
     if (typeof team.name === "number") {
       name = team.name.toString();
     } else if (typeof team.name === "string") {
       name = team.name;
     }
-    if (team.captain?.match(userRegex) || name.match(userRegex) || members.match(userRegex)) {
+    if (team.captain?.match(userRegex) || name.match(userRegex)) {
       return [true, key];
+    }
+    if (team.members) {
+      team.members.forEach((m) => {
+        if (m.match(userRegex)) return [true, key];
+      });
     }
   }
   return [false, undefined];
@@ -200,22 +202,18 @@ async function check(tourneyId, username, inOrOut) {
     });
     let signedUp = data.people.og;
 
-    for (let team in signedUp) {
-      const key = team;
-      team = signedUp[key];
-      if (team.captain === username || team.name === username) {
-        signedUp[key].in = inOrOut === "in" ? true : false;
-        await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(data.people)}') WHERE id=${tourneyId}`)
-          .then(() => {
-            resolve(true);
-          })
-          .catch((err) => {
-            console.log(err);
-            reject(false);
-          });
-      }
-    }
-    reject(false);
+    const [isIn, key] = isInTourney(signedUp, username);
+    if (isIn) {
+      signedUp[key].in = inOrOut === "in" ? true : false;
+      await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(data.people)}') WHERE id=${tourneyId}`)
+        .then(() => {
+          resolve(true);
+        })
+        .catch((err) => {
+          console.log(err);
+          reject(false);
+        });
+    } else reject(false);
   }).catch((err) => err);
 }
 

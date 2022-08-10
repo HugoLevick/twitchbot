@@ -129,7 +129,7 @@
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h1">Elvyn Calderon</h1>
+            <h1 class="h1" id="channelName">Channel Name</h1>
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center">
               <select
                 class="form-select"
@@ -223,5 +223,11 @@
       feather.replace({ "aria-hidden": "true" });
     </script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/src/getChannelName.js"></script>
+    <script>
+      (async () => {
+        document.getElementById("channelName").innerHTML = await getChannelName();
+      })();
+    </script>
   </body>
 </html>

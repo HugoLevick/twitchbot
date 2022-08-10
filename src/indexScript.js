@@ -363,7 +363,7 @@ function teamToHTML(team, mode = "team") {
       break;
     case "draft":
       html += `<td>${team.in ? "YES" : "NO"}</td>`; //Checkin
-      html += `<td><input type="number" value="${team.tier}" style="max-width: 20%; border:0; background-color:rgba(0,0,0,0);" onchange="changeTier('${team.name}',  this.value,${tourney.id})"/></td>`; //Tier
+      html += `<td><input type="number" value="${team.tier}" min='0' style="max-width: 20%; border:0; background-color:rgba(0,0,0,0);" onchange="changeTier('${team.name}',  this.value,${tourney.id})"/></td>`; //Tier
       break;
     //prettier-ignore
     default:
@@ -382,7 +382,7 @@ function teamToHTML(team, mode = "team") {
 }
 
 function changeTier(username, tier, id) {
-  if (tier.match(/^0+/)) {
+  if (tier.match(/^0[0-9]+/)) {
     tier = tier.replace(/^0+/, "");
   }
   fetch(`/tourneys/${id}/people`, {
@@ -421,3 +421,7 @@ let tourney;
 let params = {};
 getParams();
 reload();
+
+setInterval(() => {
+  reload(document.getElementById("filterTable").value);
+}, 2000);

@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import connection, {
   addToTourney,
+  bottedChannel,
   checkTourneysStatus,
   insertIntoDatabase,
   isInTourney,
@@ -90,6 +91,10 @@ export default function startServer() {
         console.log(err);
         res.send(JSON.stringify([]));
       });
+  });
+
+  app.get("/current/channel", async function (req, res) {
+    res.send(JSON.stringify(bottedChannel));
   });
 
   app.get("/tourneys/:id", async function (req, res) {

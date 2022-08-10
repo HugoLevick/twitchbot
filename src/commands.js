@@ -1,6 +1,6 @@
 import { isInTourney, obtainPeople, upcomingT } from "./bot.js";
 import Command from "./commandClass.js";
-import { addToTourney } from "./bot.js";
+import { addToTourney, queryDatabase } from "./bot.js";
 
 const commands = [
   new Command("!jointourney", "", "action", async ({ username }, { params, client, target }) => {
@@ -116,6 +116,34 @@ const commands = [
       console.log(username, "tried to check in (disabled)");
     }
   }),
+  new Command("!checkin", "", "action", async (ctx, { client, target, params, functions }) => {
+    if (functions.isModOrOwner(ctx)) {
+      const nextT = upcomingT[0];
+      const username = params[0].replace("@", "");
+      const res = await functions.check(nextT.id, username, "in");
+      if (res) {
+        client.say(target, `@${username} checked In! elvyncHype`);
+        console.log(`${username} checked in by request of ${ctx.username}`);
+      } else {
+        client.say(target, `@${ctx.username} user ${username} wasnt in the tourney`);
+        console.log(username, "wasnt in the tourney and tried to check in by request of " + ctx.username);
+      }
+    }
+  }),
+  new Command("!checkout", "", "action", async (ctx, { client, target, params, functions }) => {
+    if (functions.isModOrOwner(ctx)) {
+      const nextT = upcomingT[0];
+      const username = params[0].replace("@", "");
+      const res = await functions.check(nextT.id, username, "out");
+      if (res) {
+        client.say(target, `@${username} checked out! elvyncServingLs`);
+        console.log(`${username} checked in by request of ${ctx.username}`);
+      } else {
+        client.say(target, `@${ctx.username} user ${username} wasnt in the tourney`);
+        console.log(username, "wasnt in the tourney and tried to check out by request of " + ctx.username);
+      }
+    }
+  }),
   new Command("!togglecheckins", "", "action", (ctx, { client, target, functions }) => {
     if (functions.isModOrOwner(ctx)) {
       const res = functions.toggleCheckIns();
@@ -173,6 +201,32 @@ const commands = [
         break;
     }
     client.say(target, message);
+  }),
+  new Command("!changetier", "", "action", async (ctx, { client, target, params, functions }) => {
+    const nextT = upcomingT[0];
+    if (functions.isModOrOwner(ctx) && nextT.mode === "draft") {
+      const username = params[0].replace("@", "");
+      const tier = params[1];
+      const people = await obtainPeople(nextT.id);
+      const [isIn, key] = isInTourney(people.og, username);
+      if (isIn) {
+        people.og[key].tier = tier;
+        await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${nextT.id}`)
+          .then(() => {
+            client.say(target, `@${ctx.username} updated tier of ${username}`);
+            console.log(`Updated tier of ${username} by request of ${ctx.username}`);
+            return true;
+          })
+          .catch((err) => {
+            client.say(target, `@${ctx.username} could not update tier of ${username}`);
+            console.log("Could not update tier of " + username, err);
+            return false;
+          });
+      } else {
+        client.say(target, `@${ctx.username} user ${username} wasn't in the tourney`);
+        console.log(`${ctx.username} tried updating tier of ${username} but wasn't in the tourney`);
+      }
+    }
   }),
   new Command("!henzzito", "", "action", ({}, { client, target }) => {
     client.say(target, `Henzzito is the first twitch bot developed by @h_levick`);

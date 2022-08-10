@@ -37,16 +37,16 @@ async function loadTeams(filter) {
                 teams = tourney.people.og ?? {};
               }
             }
-            if (!tourney.randomized && tourney.mode !== "draft") {
-              if (!tourney.people.teams) tourney.people.teams = {};
-              let keys = Object.keys(teams);
-              for (let key in keys) {
-                key = keys[key];
-                let team = teams[key];
-                tourney.people.teams[key] = new Team(team.name, team.captain ?? team.name, team.members ?? [team.name], key, true);
-              }
-              teams = tourney.people.teams ?? {};
+          }
+          if (!tourney.randomized && tourney.mode !== "draft") {
+            if (!tourney.people.teams) tourney.people.teams = {};
+            let keys = Object.keys(teams);
+            for (let key in keys) {
+              key = keys[key];
+              let team = teams[key];
+              tourney.people.teams[key] = new Team(team.name, team.captain ?? team.name, team.members ?? [team.name], key, true);
             }
+            teams = tourney.people.teams ?? {};
           }
         }
         //prettier-ignore
@@ -214,6 +214,7 @@ async function randomizeTeams() {
             reloadDraft();
             savePeople();
             randomSelect.innerHTML = search;
+            Swal.fire("Done!", "These will be the new teams", "success");
           }
         } else if (answer) {
           let captains = [];
@@ -390,7 +391,7 @@ async function getParams() {
 
 function teamToHTML(team) {
   return `<div class="col d-flex justify-content-center align-items-center">
-            <div class="card" style="width: 17rem">
+            <div class="card" style="width: 18rem; max-width: 18rem;">
               <div class="card-header d-flex justify-content-between align-items-center">
                 <p class="h3">Team ${team.name}</p>
                 <button id="btnteam${team.key}" class="btn btn-outline-primary" onClick="copyText(${team.key})">Copy</button>
