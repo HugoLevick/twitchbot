@@ -114,7 +114,7 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="/#">
+                <a class="nav-link" aria-current="page" href="/#">
                   <span data-feather="check" class="align-text-bottom"></span>
                   Check-In
                 </a>
@@ -126,7 +126,7 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" aria-current="page" href="/subs/">
+                <a class="nav-link active" aria-current="page" href="#">
                   <span data-feather="more-horizontal" class="align-text-bottom"></span>
                   Subs
                 </a>
@@ -164,9 +164,7 @@
           </div>
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-end pt-3 pb-2 mb-3">
-              <h2 class="mb-0" style="margin-right: 0.5rem" id="title">Sign-Up</h2>
-              <p class="mb-0" style="margin-left: 0.5rem">Total: <span id="noOfPeople">Select a tourney</span></p>
-              <p class="mb-0" style="margin-left: 0.5rem">Checked-In: <span id="noOfCheckIns">Select a tourney</span></p>
+              <h2 class="mb-0" style="margin-right: 0.5rem" id="title">Subs</h2>
             </div>
 
             <div class="row" style="max-width: 22rem">
@@ -175,17 +173,17 @@
                   <button
                     type="button"
                     class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
-                    onclick="clearList()"
+                    onclick="subPerson()"
                   >
-                    <span data-feather="file"></span>&nbsp;Clear List
+                    <span data-feather="file"></span>&nbsp;Sub Team
                   </button>
                   <button
                     type="button"
                     id="btnAdd"
                     class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
-                    onclick="addToTourney()"
+                    onclick="addToSubs()"
                   >
-                    <span data-feather="user-plus"></span>&nbsp;Add
+                    <span data-feather="user-plus"></span>&nbsp;Add Sub
                   </button>
                   <button
                     type="button"
@@ -218,7 +216,6 @@
               <thead id="thead">
                 <tr>
                   <th scope="col">Username</th>
-                  <th scope="col">Checked In</th>
                   <th scope="col" class="d-flex align-items-center justify-content-center">Actions</th>
                 </tr>
               </thead>
@@ -241,10 +238,11 @@
       crossorigin="anonymous"
     ></script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/src/luxon.js"></script>
     <script src="/src/selectedTourney.js"></script>
+    <script src="/src/isInTourney.js"></script>
+    <script src="/src/luxon.js"></script>
     <script src="/src/version.js"></script>
-    <script src="/src/indexScript.js"></script>
+    <script src="/src/subsScript.js"></script>
     <script src="/src/getChannelName.js"></script>
     <script>
       (async () => {

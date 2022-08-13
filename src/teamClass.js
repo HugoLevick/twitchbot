@@ -9,17 +9,19 @@ export class Team {
 }
 
 export default class Solo {
-  constructor(name) {
+  constructor(name, key = name) {
     this.name = name;
     this.in = false;
+    this.key = key;
   }
 }
 
 export class Draft {
-  constructor(name, tier = 0) {
+  constructor(name, tier = 0, key) {
     this.name = name;
     this.in = false;
     this.tier = tier;
     this.picked = false;
+    this.key = key;
   }
 }

@@ -5,7 +5,6 @@ import connection, {
   addToTourney,
   bottedChannel,
   checkTourneysStatus,
-  insertIntoDatabase,
   isInTourney,
   queryDatabase,
   scheduleTourneys,
@@ -16,6 +15,7 @@ import connection, {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import bodyParser from "body-parser";
+import Solo, { Draft } from "./teamClass.js";
 
 const app = express();
 
@@ -42,6 +42,14 @@ export default function startServer() {
 
   app.get("/teams/draft", function (req, res) {
     res.sendFile(path.join(__dirname, "/../teams/draft.html"));
+  });
+
+  app.get("/subs", function (req, res) {
+    res.sendFile(path.join(__dirname, "/../subs/subs.html"));
+  });
+
+  app.get("/subs/subPick", function (req, res) {
+    res.sendFile(path.join(__dirname, "/../subs/subPick.html"));
   });
 
   app.get("/bannedpeople", function (req, res) {
@@ -123,8 +131,12 @@ export default function startServer() {
     }
   });
 
-  app.put("/tourneys/:id/people", async function (req, res) {
-    res.send(await editPerson(req.body.username, req.params.id, req.body.edit));
+  app.put("/tourneys/:id/people/:name", async function (req, res) {
+    res.send(await editPerson(req.params.name, req.params.id, req.body.edit));
+  });
+
+  app.put("/tourneys/:id/subs/:name", async function (req, res) {
+    res.send(await editSub(req.params.name, req.params.id, req.body.edit));
   });
 
   app.post("/people", async function (req, res) {
@@ -202,6 +214,10 @@ export default function startServer() {
     }
   });
 
+  app.post("/tourneys/:id/subs", async function (req, res) {
+    res.send(await addToSubs(req.body.name, req.body.tier, req.params.id));
+  });
+
   app.post("/banned", async function (req, res) {
     queryDatabase(`INSERT INTO banned(username) VALUES('${req.body.username}')`)
       .then((response) => {
@@ -234,6 +250,21 @@ export default function startServer() {
 
   app.delete("/people/:id/:name", async function (req, res) {
     res.send(await utilities.functions.removeFromTourney(req.params.name, req.params.id));
+  });
+
+  app.delete("/subs/:id", async function (req, res) {
+    let [people] = await queryDatabase(`SELECT people FROM tourneys WHERE id=${req.params.id}`);
+    people = people.people;
+    people.subs = {};
+    res.send(
+      await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${req.params.id}`)
+        .then(() => true)
+        .catch(() => false)
+    );
+  });
+
+  app.delete("/tourneys/:id/subs/:name", async function (req, res) {
+    res.send(await removeFromSubs(req.params.name, req.params.id));
   });
 
   app.delete("/banned", async function (req, res) {
@@ -302,5 +333,59 @@ async function unbanEveryone() {
       }
       res(true);
     });
+  });
+}
+
+async function addToSubs(name, tier = "0", tourneyId) {
+  return new Promise(async (resolve, reject) => {
+    let [data] = await queryDatabase("SELECT people, mode FROM tourneys WHERE id=" + tourneyId);
+    let { people, mode } = data;
+    if (!people.subs) people.subs = {};
+    let subs = people.subs;
+    let keys = Object.keys(subs);
+    let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
+    if (mode === "draft") subs[key] = new Draft(name, tier, key);
+    else subs[key] = new Solo(name, key);
+    queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
+      .then(() => resolve(true))
+      .catch((err) => reject(err));
+  });
+}
+
+async function removeFromSubs(name, tourneyId) {
+  return new Promise(async (resolve, reject) => {
+    let [data] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + tourneyId);
+    let { people } = data;
+    if (!people.subs) people.subs = {};
+    let subs = people.subs;
+    const [isIn, key] = isInTourney(subs, name);
+    if (isIn) {
+      delete subs[key];
+    } else {
+      reject(false);
+    }
+    queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
+      .then(() => resolve(true))
+      .catch((err) => reject(err));
+  });
+}
+
+async function editSub(username, tourneyId, properties = []) {
+  return new Promise(async (resolve, reject) => {
+    let [data] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + tourneyId);
+    let subs = data.people.subs;
+    const [isIn, key] = isInTourney(subs, username);
+    if (isIn) {
+      let person = subs[key];
+      properties.forEach((p) => {
+        person[p.property] = p.value;
+      });
+      await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(data.people)}') WHERE id=${tourneyId}`)
+        .then(() => resolve(true))
+        .catch((err) => reject(err));
+      console.log("Updated tier of sub " + username);
+    } else {
+      resolve(false);
+    }
   });
 }

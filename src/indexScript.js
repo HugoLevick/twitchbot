@@ -26,8 +26,6 @@ function loadTable(filter) {
           //----------------------------------------------------SOLOS-----------------------------------------------------
           title.innerHTML = "Sign Up - Solos";
           btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Person';
-          thead.innerHTML =
-            '<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
           let html = "";
           let people = [];
           for (let person in tourney.people.og) {
@@ -48,9 +46,6 @@ function loadTable(filter) {
           //----------------------------------------------------DRAFT-----------------------------------------------------
           title.innerHTML = "Sign Up - Draft";
           btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Person';
-          //prettier-ignore
-          thead.innerHTML =
-            `<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col">Tier <input type="number" class="fs-5" id="personTier" name="personTier" min="0" value="${selectedTier ?? '0'}" style="max-width:15%; border:0" onchange="filterTier(this.value)"/></th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>`;
           let html = "";
           let teams = [];
           for (let team in tourney.people.og) {
@@ -77,8 +72,6 @@ function loadTable(filter) {
           //----------------------------------------------------TEAMS-----------------------------------------------------
           title.innerHTML = "Sign Up - " + tourney.mode;
           btnAdd.innerHTML = '<span data-feather="user-plus"></span>&nbsp;Add Team';
-          thead.innerHTML =
-            '<tr><th scope="col">Team Name</th><th scope="col">Captain</th><th scope="col">Checked In</th><th scope="col">Members</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
           let html = "";
           let teams = [];
           for (let team in tourney.people.og) {
@@ -363,7 +356,17 @@ function teamToHTML(team, mode = "team") {
       break;
     case "draft":
       html += `<td>${team.in ? "YES" : "NO"}</td>`; //Checkin
-      html += `<td><input type="number" value="${team.tier}" min='0' style="max-width: 20%; border:0; background-color:rgba(0,0,0,0);" onchange="changeTier('${team.name}',  this.value,${tourney.id})"/></td>`; //Tier
+      html += `<td>
+              <input type="number" value="${team.tier}" min='0' style="max-width: 20%; border:0; background-color:rgba(0,0,0,0);" onchange="changeTier('${team.name}', this.value, 'input')" id="inputTeam${team.name}"/>
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center" onclick="changeTier('${team.name}', '1')">
+                  <span data-feather="chevron-up"></span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center" onclick="changeTier('${team.name}', '-1')">
+                  <span data-feather="chevron-down"></span>
+                </button>
+              </div>
+            </td>`; //Tier
       break;
     //prettier-ignore
     default:
@@ -381,20 +384,26 @@ function teamToHTML(team, mode = "team") {
   return html;
 }
 
-function changeTier(username, tier, id) {
+function changeTier(username, tier, from = "button") {
   if (tier.match(/^0[0-9]+/)) {
     tier = tier.replace(/^0+/, "");
   }
-  fetch(`/tourneys/${id}/people`, {
+  const currentTier = parseInt(document.getElementById(`inputTeam${username}`).value);
+  let tierSum;
+  if (from === "button") {
+    tier = parseInt(tier);
+    tierSum = currentTier + tier;
+    if (tierSum < 0) tierSum = 0;
+    document.getElementById(`inputTeam${username}`).value = tierSum;
+  }
+  fetch(`/tourneys/${tourney.id}/people/${username}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      username: username,
-      id: id,
-      edit: [{ property: "tier", value: tier }],
+      edit: [{ property: "tier", value: tierSum ?? (currentTier || 0) }],
     }),
   })
     .then((res) => res.json())
@@ -403,24 +412,37 @@ function changeTier(username, tier, id) {
     });
 }
 
-function reload(filter) {
-  loadTable(filter);
-}
-
-async function getParams() {
+async function reload(filter) {
   new URL(window.location.href).searchParams.forEach((x, y) => {
     params[y] = x;
   });
   if (params.tourneyId) {
     [tourney] = await fetch("/tourneys/" + params.tourneyId).then((res) => res.json());
   }
+
+  if (filter === "/FirstReload/") {
+    loadTable();
+    switch (tourney?.mode) {
+      case "solos":
+        thead.innerHTML =
+          '<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
+        break;
+      case "draft":
+        //prettier-ignore
+        thead.innerHTML =
+            `<tr><th scope="col">Username</th><th scope="col">Checked In</th><th scope="col">Tier <input type="number" class="fs-5" id="personTier" name="personTier" min="0" value="${selectedTier ?? '0'}" style="max-width:15%; border:0" onchange="filterTier(this.value)"/></th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>`;
+        break;
+      default:
+        thead.innerHTML =
+          '<tr><th scope="col">Team Name</th><th scope="col">Captain</th><th scope="col">Checked In</th><th scope="col">Members</th><th scope="col" class="d-flex align-items-center justify-content-center">Actions</th></tr>';
+    }
+  } else loadTable(filter);
 }
 
 let selectedTier;
 let tourney;
 let params = {};
-getParams();
-reload();
+reload("/FirstReload/");
 
 setInterval(() => {
   reload(document.getElementById("filterTable").value);

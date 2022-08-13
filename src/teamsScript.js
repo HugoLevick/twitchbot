@@ -38,7 +38,7 @@ async function loadTeams(filter) {
               }
             }
           }
-          if (!tourney.randomized && tourney.mode !== "draft") {
+          if (tourney && !tourney.randomized && tourney.mode !== "draft") {
             if (!tourney.people.teams) tourney.people.teams = {};
             let keys = Object.keys(teams);
             for (let key in keys) {
@@ -49,37 +49,39 @@ async function loadTeams(filter) {
             teams = tourney.people.teams ?? {};
           }
         }
-        //prettier-ignore
-        modeLabel.innerHTML = `${tourney.randomized ? "Randomized" : "Set"} ${tourney.mode.charAt(0).toUpperCase() + tourney.mode.slice(1)}`;
-        if (tourney && (!tourney.randomized || tourney.people.set) && tourney.mode != "draft") {
-          const keys = Object.keys(teams);
-          const numberOfTeams = keys.length;
-          let html = '<div class="row mt-4 mb-4">';
-          for (let i = 0, j = 0; i < numberOfTeams; i++, j++) {
-            let team = teams[keys[i]];
-            let filtered = filterMembers(team.members, filterRegExp);
-            if (team.in && (filtered || team.name.toString().match(filterRegExp))) {
-              if (j === 3) {
-                html += '</div><!--End of row--><div class="row mt-4 mb-4">';
-                j = 0;
+        if (tourney) {
+          //prettier-ignore
+          modeLabel.innerHTML = `${tourney.randomized ? "Randomized" : "Set"} ${tourney.mode.charAt(0).toUpperCase() + tourney.mode.slice(1)}`;
+          if ((!tourney.randomized || tourney.people.set) && tourney.mode != "draft") {
+            const keys = Object.keys(teams);
+            const numberOfTeams = keys.length;
+            let html = '<div class="row mt-4 mb-4">';
+            for (let i = 0, j = 0; i < numberOfTeams; i++, j++) {
+              let team = teams[keys[i]];
+              let filtered = filterMembers(team.members, filterRegExp);
+              if (team.in && (filtered || team.name.toString().match(filterRegExp))) {
+                if (j === 3) {
+                  html += '</div><!--End of row--><div class="row mt-4 mb-4">';
+                  j = 0;
+                }
+                html += teamToHTML(team);
               }
-              html += teamToHTML(team);
             }
+            html += "</div>";
+            grid.innerHTML = html;
+            if (!tourney.randomized) {
+              randomBtn.disabled = true;
+            }
+          } else if (tourney?.mode === "draft") {
+            fetch("/teams/draft")
+              .then((res) => res.text())
+              .then((html) => {
+                teams = tourney.people.teams ?? {};
+                grid.innerHTML = html;
+                reloadDraft();
+                feather.replace({ "aria-hidden": "true" });
+              });
           }
-          html += "</div>";
-          grid.innerHTML = html;
-          if (!tourney.randomized) {
-            randomBtn.disabled = true;
-          }
-        } else if (tourney?.mode === "draft") {
-          fetch("/teams/draft")
-            .then((res) => res.text())
-            .then((html) => {
-              teams = tourney.people.teams ?? {};
-              grid.innerHTML = html;
-              reloadDraft();
-              feather.replace({ "aria-hidden": "true" });
-            });
         }
         resolve();
       });
@@ -334,16 +336,17 @@ async function reload(filter) {
   return new Promise(async (resolve) => {
     if (filter === "/FirstReload/") {
       await loadTeams();
-      setNumberOfPeople();
-      if (tourney?.mode === "draft") {
-        draftTeams = { ...tourney.people.og };
-      }
-      nosearch = `  <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
+      if (tourney) {
+        setNumberOfPeople();
+        if (tourney?.mode === "draft") {
+          draftTeams = { ...tourney.people.og };
+        }
+        nosearch = `  <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
                     <option value="search" disabled>Cannot search</option>`;
-      search = `  <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
+        search = `  <option value="random">${tourney.mode === "solos" || tourney.mode === "draft" ? "Randomize" : "Fuse teams"}</option>
                   <option value="search">Search</option>`;
-      if (tourney.randomized || tourney.mode === "draft") {
-        filterOrRandom.innerHTML = `<div class="input-group m-0">
+        if (tourney.randomized || tourney.mode === "draft") {
+          filterOrRandom.innerHTML = `<div class="input-group m-0">
                   <div class="input-group-prepend">
                     <span class="input-group-text" id="labelTeamsOf" style="border-radius: 0">
                       <select style="border:0; background-color:#e9ecef;" id="randomSelect" onchange="handleSelectRandom(this.value)">
@@ -356,13 +359,14 @@ async function reload(filter) {
                     tourney.mode === "draft" ? "disabled" : ""
                   }/>
                 </div>`;
-      } else {
-        filterOrRandom.innerHTML = `<div class="input-group m-0">
+        } else {
+          filterOrRandom.innerHTML = `<div class="input-group m-0">
                   <div class="input-group-prepend">
                     <span class="input-group-text" id="labelFilter" style="border-radius: 0">Filter:</span>
                   </div>
                   <input type="text"class="form-control" style="max-width: 100%"id="filterTable" oninput="reload(this.value)"placeholder="Search..."/>
                 </div>`;
+        }
       }
     } else {
       await loadTeams(filter);
@@ -449,28 +453,6 @@ class Team {
     this.in = checked;
     this.key = key;
   }
-}
-
-function isInTourney(people, username) {
-  let userRegex = new RegExp(`^${username}$`);
-  for (let team in people) {
-    let key = team;
-    team = people[team];
-    let name, members;
-    if (team.members) {
-      members = team.members.filter((m) => m !== undefined && m !== null);
-      members = members.join(" ");
-    } else members = "";
-    if (typeof team.name === "number") {
-      name = team.name.toString();
-    } else if (typeof team.name === "string") {
-      name = team.name;
-    }
-    if (team.captain?.match(userRegex) || name.match(userRegex) || members.match(userRegex)) {
-      return [true, key];
-    }
-  }
-  return [false, undefined];
 }
 
 let nosearch, search;

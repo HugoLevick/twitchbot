@@ -208,7 +208,7 @@ function draftToHTML(team) {
   <div class="col d-flex justify-content-center align-items-center">
     <div class="card" style="width: 18rem; max-width:18rem;">
         <div class="card-header d-flex justify-content-between align-items-center">
-        <p class="h3">Team ${team.name}</p>
+        <p class="h3">Team ${team.name.length > 8 ? team.name.slice(0, 9) + "..." : team.name}</p>
         <div class="btn-group">
             <button id="btnteam${team.key}" class="btn btn-outline-primary" onClick="copyText(${team.key})">Copy</button>
             <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" onclick="dissolveTeam(${

@@ -122,17 +122,13 @@ export async function addToTourney(name, captain, members, tourneyId, tier = 0) 
           rej(false);
           return;
         }
+        let keys = Object.keys(signedUp);
+        let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
         if (mode === "solos") {
-          let keys = Object.keys(signedUp);
-          let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
-          signedUp[key] = new Solo(name);
+          signedUp[key] = new Solo(name, key);
         } else if (mode === "draft") {
-          let keys = Object.keys(signedUp);
-          let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
-          signedUp[key] = new Draft(name, tier);
+          signedUp[key] = new Draft(name, tier, key);
         } else if (mode) {
-          let keys = Object.keys(signedUp);
-          let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
           signedUp[key] = new Team(name, captain, [captain, ...members], key);
         }
         queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
