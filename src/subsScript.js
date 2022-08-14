@@ -190,7 +190,9 @@ function fillSubs(filter) {
       const people = tiers[key];
       if (people.length > 0) {
         html += `<div class="card-header d-flex justify-content-between align-items-center">
-                Tier ${key}
+                <button class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" onclick="randomSub('${key}')">
+                Tier ${key}  random <span class="align-text-bottom" data-feather="arrow-right">></span>
+              </button>
             </div>`;
         people.forEach((p) => {
           if (p.name?.match(filterRegex) && !currentTeam?.members?.includes(p.name)) {
@@ -200,6 +202,11 @@ function fillSubs(filter) {
       }
     }
   } else {
+    html += `<div class="card-header d-flex justify-content-between align-items-center">
+              <button class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" onclick="randomSub()">
+                Select Random <span class="align-text-bottom" data-feather="arrow-right">></span>
+              </button>
+            </div>`;
     for (let sub in subs) {
       sub = subs[sub];
       if (sub.name?.match(filterRegex) && !currentTeam?.members?.includes(sub.name)) {
@@ -211,12 +218,30 @@ function fillSubs(filter) {
   feather.replace({ "aria-hidden": "true" });
 }
 
+function randomSub(tier) {
+  let toSub = {};
+  if (tier) {
+    for (let sub in subs) {
+      sub = subs[sub];
+      if (!sub.in && sub.tier == tier) toSub[sub.key] = sub;
+    }
+  } else {
+    for (let sub in subs) {
+      sub = subs[sub];
+      if (!sub.in) toSub[sub.key] = sub;
+    }
+  }
+  const peopleKeys = Object.keys(toSub);
+  const randomSub = peopleKeys[Math.floor(Math.random() * peopleKeys.length)];
+  moveToTeam(subs[randomSub].name, "current");
+  document.getElementById("info").innerHTML = subs[randomSub].name + " was selected!";
+}
+
 async function fillCurrentTeam(key, from = "code") {
   if (from === "select") {
-    await reload();
+    reload();
     currentTeamKey = key ?? currentTeamKey;
     currentTeam = tourney.people.teams[currentTeamKey];
-    console.log(currentTeam);
     toDelete = [];
     fillDeleted();
   }
@@ -244,8 +269,9 @@ function fillDeleted() {
 
 function moveToTeam(name, destination) {
   if (destination === "current") {
-    const [isIn, key] = isInTourney(subs, name);
-    if (isIn && currentTeam.members) {
+    const [isInSubs, key] = isInTourney(subs, name);
+    if (isInSubs && currentTeam.members) {
+      subs[key].in = true;
       currentTeam.members.push(subs[key].name);
     } else if (toDelete.includes(name)) {
       currentTeam.members.push(name);
@@ -254,6 +280,8 @@ function moveToTeam(name, destination) {
       Swal.fire("Error", `There was an error adding ${name}, try reloading the page or select a valid team`, "error");
     }
   } else if (destination === "subs") {
+    const [isIn, key] = isInTourney(subs, name);
+    if (isIn) subs[key].in = false;
     currentTeam.members = currentTeam.members.filter((m) => m !== name);
   } else {
     const [deletedMember] = currentTeam.members.splice(currentTeam.members.indexOf(name), 1);
