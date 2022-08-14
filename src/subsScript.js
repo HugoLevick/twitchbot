@@ -215,8 +215,8 @@ async function fillCurrentTeam(key, from = "code") {
   if (from === "select") {
     await reload();
     currentTeamKey = key ?? currentTeamKey;
-    if (tourney.people.set || tourney.mode === "draft") currentTeam = tourney.people.teams[currentTeamKey];
-    else currentTeam = tourney.people.og[currentTeamKey];
+    currentTeam = tourney.people.teams[currentTeamKey];
+    console.log(currentTeam);
     toDelete = [];
     fillDeleted();
   }
@@ -330,11 +330,18 @@ function saveTeam() {
 
   toDelete.forEach((d) => {
     let [isIn, key] = isInTourney(tourney.people.og, d);
-    if (isIn && (tourney.mode === "draft" || tourney.people.set)) tourney.people.og[key].in = false;
+    if (isIn && (tourney.mode === "draft" || tourney.people.set) && (!tourney.randomized || tourney.mode === "draft")) {
+      tourney.people.og[key].in = false;
+      tourney.people.og[key].picked = false;
+    }
   });
 
   if (tourney.people.set || tourney.mode === "draft") tourney.people.teams[currentTeamKey] = currentTeam;
-  else tourney.people.og[currentTeamKey] = currentTeam;
+  else if (!tourney.randomized) {
+    currentTeam.in = true;
+    tourney.people.teams[currentTeamKey] = currentTeam;
+    tourney.people.og[currentTeamKey] = currentTeam;
+  } else tourney.people.og[currentTeamKey] = currentTeam;
   fetch(`/tourneys/${tourney.id}/people`, {
     method: "POST",
     headers: {
@@ -399,6 +406,7 @@ let tourney;
 let toDelete = [];
 let currentTeam = {};
 let params = {};
+let teams = {};
 let subs;
 const defaultHTML = `<li class="list-group-item">
                         <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>

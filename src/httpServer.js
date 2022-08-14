@@ -7,6 +7,7 @@ import connection, {
   checkTourneysStatus,
   isInTourney,
   queryDatabase,
+  retrieveBanned,
   scheduleTourneys,
   tourneyLocalT,
   utilities,
@@ -353,23 +354,34 @@ async function unbanEveryone() {
   });
 }
 
-async function addToSubs(name, tier = "0", tourneyId) {
+export async function addToSubs(name, tier = "0", tourneyId) {
   return new Promise(async (resolve, reject) => {
     let [data] = await queryDatabase("SELECT people, mode FROM tourneys WHERE id=" + tourneyId);
     let { people, mode } = data;
     if (!people.subs) people.subs = {};
-    let subs = people.subs;
-    let keys = Object.keys(subs);
-    let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
-    if (mode === "draft") subs[key] = new Draft(name, tier, key);
-    else subs[key] = new Solo(name, key);
-    queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
-      .then(() => resolve(true))
-      .catch((err) => reject(err));
+    const subsList = [];
+    for (let sub in people.subs) {
+      sub = people.subs[sub];
+      subsList.push(sub.name);
+    }
+    const banned = await retrieveBanned().then((r) => r.map((p) => p.username));
+    if (!banned.includes(name) && !subsList.includes(name)) {
+      let subs = people.subs;
+      let keys = Object.keys(subs);
+      let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
+      if (mode === "draft") subs[key] = new Draft(name, tier, key);
+      else subs[key] = new Solo(name, key);
+      queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
+        .then(() => resolve([true, "normal"]))
+        .catch((err) => {
+          console.log(err);
+          reject([false, "unexpected"]);
+        });
+    } else reject([false, banned.includes(name) ? "banned" : "already-in"]);
   });
 }
 
-async function removeFromSubs(name, tourneyId) {
+export async function removeFromSubs(name, tourneyId) {
   return new Promise(async (resolve, reject) => {
     let [data] = await queryDatabase("SELECT people FROM tourneys WHERE id=" + tourneyId);
     let { people } = data;
@@ -379,11 +391,14 @@ async function removeFromSubs(name, tourneyId) {
     if (isIn) {
       delete subs[key];
     } else {
-      reject(false);
+      reject([false, "not-in"]);
     }
     queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
-      .then(() => resolve(true))
-      .catch((err) => reject(err));
+      .then(() => resolve([true, "normal"]))
+      .catch((err) => {
+        console.log(err);
+        reject([false, "unexpected"]);
+      });
   });
 }
 

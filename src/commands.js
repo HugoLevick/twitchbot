@@ -1,6 +1,7 @@
 import { isInTourney, obtainPeople, upcomingT } from "./bot.js";
 import Command from "./commandClass.js";
 import { addToTourney, queryDatabase } from "./bot.js";
+import { addToSubs, removeFromSubs } from "./httpServer.js";
 
 const commands = [
   new Command("!jointourney", "", "action", async ({ username }, { params, client, target }) => {
@@ -159,7 +160,7 @@ const commands = [
   new Command("!myteam", "", "action", async ({ username }, { client, target }) => {
     const nextT = upcomingT[0];
     const people = await obtainPeople(nextT.id);
-    const teams = people.teams ?? people.og;
+    const teams = nextT.randomized ? people.teams : people.og;
     const [isIn, key] = isInTourney(teams, username); //returns [true/false, key]
     if (isIn) {
       const inTeam = teams[key];
@@ -227,6 +228,54 @@ const commands = [
         console.log(`${ctx.username} tried updating tier of ${username} but wasn't in the tourney`);
       }
     }
+  }),
+  new Command("!sub", "", "action", async ({ username }, { client, target }) => {
+    const nextT = upcomingT[0];
+    return addToSubs(username, "0", nextT.id)
+      .then((res) => {
+        if (res[0]) {
+          client.say(target, `@${username} was added as a sub KomodoHype`);
+          console.log(`${username} joined the sub list`);
+        }
+      })
+      .catch((err) => {
+        switch (err[1]) {
+          case "already-in":
+            client.say(target, `@${username} is already a sub elvyncServingLs`);
+            console.log(username, "is already in and tried to join sub list");
+            break;
+          case "banned":
+            client.say(target, `@${username} is banned 💥🔨`);
+            console.log(username, "is banned and tried to join sub list");
+            break;
+          case "unexpected":
+            client.say(target, `@${username} an unexpected error ocurred`);
+            console.log(`${username} tried joining the sub list, an error ocurred`);
+            break;
+        }
+      });
+  }),
+  new Command("!subout", "", "action", async ({ username }, { client, target }) => {
+    const nextT = upcomingT[0];
+    return removeFromSubs(username, nextT.id)
+      .then((res) => {
+        if (res[0]) {
+          client.say(target, `@${username} left the sub list! BibleThump`);
+          console.log(`${username} left the sub list`);
+        }
+      })
+      .catch((err) => {
+        switch (err[1]) {
+          case "not-in":
+            client.say(target, `@${username} is not in the sub list elvyncServingLs`);
+            console.log(username, "is not in the sub list");
+            break;
+          case "unexpected":
+            client.say(target, `@${username} an unexpected error ocurred`);
+            console.log(`${username} tried joining the sub list, an error ocurred`);
+            break;
+        }
+      });
   }),
   new Command("!henzzito", "", "action", ({}, { client, target }) => {
     client.say(target, `Henzzito is the first twitch bot developed by @h_levick`);

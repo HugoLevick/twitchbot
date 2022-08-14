@@ -38,16 +38,6 @@ async function loadTeams(filter) {
               }
             }
           }
-          if (tourney && !tourney.randomized && tourney.mode !== "draft") {
-            if (!tourney.people.teams) tourney.people.teams = {};
-            let keys = Object.keys(teams);
-            for (let key in keys) {
-              key = keys[key];
-              let team = teams[key];
-              tourney.people.teams[key] = new Team(team.name, team.captain ?? team.name, team.members ?? [team.name], key, team.in);
-            }
-            teams = tourney.people.teams ?? {};
-          }
         }
         if (tourney) {
           //prettier-ignore

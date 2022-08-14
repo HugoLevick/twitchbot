@@ -12,6 +12,7 @@ export default class Solo {
   constructor(name, key = name) {
     this.name = name;
     this.in = false;
+    this.members = [name];
     this.key = key;
   }
 }

@@ -69,7 +69,7 @@ client.on("chat", (target, ctx, message) => {
     utilities.params = params;
     console.log(`${ctx.username}: ${command}`);
     commands.every((comm) => {
-      if (command?.match(new RegExp(comm.trigger, "i"))) {
+      if (command?.match(new RegExp(`^${comm.trigger}$`, "i"))) {
         if (comm.type === "action") {
           comm.action(ctx, utilities);
           return false;
@@ -108,28 +108,32 @@ export async function addToTourney(name, captain, members, tourneyId, tier = 0) 
     });
     if (!banned.includes(captain)) {
       const response = await new Promise(async (res, rej) => {
-        let [data] = await queryDatabase("SELECT people, mode FROM tourneys WHERE id=" + tourneyId).catch((err) => {
+        let [data] = await queryDatabase("SELECT people, mode, randomized FROM tourneys WHERE id=" + tourneyId).catch((err) => {
           console.log(err);
         });
-        let { people, mode } = data;
+        let { people, mode, randomized } = data;
         if (people.og === undefined) {
           people.set = false;
           people.og = {};
+          people.teams = {};
         }
         let signedUp = people.og;
         if (isInTourney(signedUp, captain ?? name)[0]) {
-          console.log("already in");
           rej(false);
           return;
         }
         let keys = Object.keys(signedUp);
         let key = keys.length > 0 ? parseInt(keys[keys.length - 1]) + 1 : 1;
-        if (mode === "solos") {
+        if (mode === "solos" && randomized) {
           signedUp[key] = new Solo(name, key);
         } else if (mode === "draft") {
           signedUp[key] = new Draft(name, tier, key);
-        } else if (mode) {
+        } else if (mode !== "solos" || !randomized) {
           signedUp[key] = new Team(name, captain, [captain, ...members], key);
+          people.teams[key] = new Team(name, captain, [captain, ...members], key);
+        } else if (mode && mode === "solos") {
+          signedUp[key] = new Team(name, captain, [captain], key);
+          people.teams[key] = new Team(name, captain, [captain], key);
         }
         queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
           .then(() => {
@@ -165,7 +169,6 @@ export function isInTourney(people, username) {
     if (team.members) {
       for (let m in team.members) {
         m = team.members[m];
-        console.log(m);
         if (m.match(userRegex)) return [true, key];
       }
     }
@@ -243,7 +246,7 @@ async function removeFromTourney(username, tourneyId) {
   }).catch((err) => err);
 }
 
-async function retrieveBanned() {
+export async function retrieveBanned() {
   const res = await queryDatabase("SELECT * FROM banned;").catch(async (err) => {
     if (err.code === "ER_NO_SUCH_TABLE") {
       const res2 = await queryDatabase("CREATE TABLE banned (username varchar(255));");

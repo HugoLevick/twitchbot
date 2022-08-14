@@ -234,6 +234,8 @@ async function addToTourney() {
                 },
                 body: JSON.stringify({
                   name: username,
+                  captain: username,
+                  members: [username],
                   id: tourney.id,
                 }),
               })
@@ -315,7 +317,12 @@ async function addToTourney() {
                     console.log(err);
                     reload();
                   });
-              }
+              } else
+                Swal.fire(
+                  "Could not add team",
+                  "Check your inputs. Names should not have special characters and members should be typed one per line excluding the captain",
+                  "error"
+                );
             }
           }
         });
