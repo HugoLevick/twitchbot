@@ -44,7 +44,7 @@ async function loadTeams(filter) {
             for (let key in keys) {
               key = keys[key];
               let team = teams[key];
-              tourney.people.teams[key] = new Team(team.name, team.captain ?? team.name, team.members ?? [team.name], key, true);
+              tourney.people.teams[key] = new Team(team.name, team.captain ?? team.name, team.members ?? [team.name], key, team.in);
             }
             teams = tourney.people.teams ?? {};
           }

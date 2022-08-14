@@ -214,6 +214,21 @@ export default function startServer() {
     }
   });
 
+  app.post("/tourneys/:id/people", async function (req, res) {
+    const people = req.body.people;
+    res.send(
+      await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${req.params.id}`)
+        .then(() => {
+          console.log("Saved teams of tourney " + req.params.id);
+          return true;
+        })
+        .catch((err) => {
+          console.log(`Could not save teams of tourney ${req.params.id}`, err);
+          return false;
+        })
+    );
+  });
+
   app.post("/tourneys/:id/subs", async function (req, res) {
     res.send(await addToSubs(req.body.name, req.body.tier, req.params.id));
   });
@@ -279,6 +294,8 @@ export default function startServer() {
   app.delete("/tourneys/:id", async function (req, res) {
     queryDatabase("DELETE FROM tourneys WHERE id=" + req.params.id)
       .then((resp) => {
+        console.log("Deleted tourney " + req.params.id);
+        scheduleTourneys();
         res.send(JSON.stringify(resp));
       })
       .catch((err) => {
