@@ -21,7 +21,7 @@ import Solo, { Draft } from "./teamClass.js";
 const app = express();
 
 export default function startServer() {
-  app.use(bodyParser.urlencoded({ extended: false })); //DEPENDENCIA PARA MANIPULAR DATOS DE POST
+  app.use(bodyParser.urlencoded({ extended: false })); //DEPENDENCIA PARA MANIPULAR DATOS DE BODY
   app.use(bodyParser.json());
   app.use(express.static(__dirname + "/../"));
 

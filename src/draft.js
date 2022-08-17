@@ -2,6 +2,7 @@ let tierCount;
 let draftList;
 let currentList;
 let saveBtn;
+let tiers = {};
 let currentTeam = {};
 const defaultHTML = `<li class="list-group-item">
                         <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>
@@ -14,7 +15,7 @@ function fillDraftPlayers(filter) {
   tierCount = document.getElementById("tierCount");
   draftList = document.getElementById("draftList");
   const filterRegex = new RegExp(filter || ".*", "i");
-  let tiers = {};
+  tiers = {};
   let keys = Object.keys(tourney.people.og);
   for (let key in keys) {
     key = keys[key];
@@ -117,7 +118,7 @@ function moveToTeam(username, group) {
   reloadDraft();
 }
 
-function saveTeam() {
+async function saveTeam() {
   let tiers = {};
   let keys = Object.keys(currentTeam);
   for (let key in keys) {
@@ -143,7 +144,7 @@ function saveTeam() {
   key = parseInt(key) + 1;
   if (!tourney.people.teams) tourney.people.teams = {};
   tourney.people.teams[key] = new Team(newTeamMembers[0], newTeamMembers[0], newTeamMembers, key, true);
-  savePeople();
+  await savePeople();
   currentTeam = {};
   reloadDraft();
 }
@@ -152,31 +153,63 @@ function loadDraftTeams(filter) {
   let teamRegex = new RegExp(filter || ".*", "i");
   let draftTeams = document.getElementById("draftTeams");
   let html = '<div class="row mt-4 mb-4">';
-  currentTeams = tourney.people.teams ?? {};
+  let currentTeams = tourney.people.teams ?? {};
   let keys = Object.keys(currentTeams);
-  let j = 0;
-  for (let key in keys) {
-    key = keys[key];
-    if (currentTeams[key].members.join(" ").match(teamRegex)) {
-      html += draftToHTML(currentTeams[key]);
-      j++;
+  if (keys.length > 0) {
+    let j = 0;
+    for (let key in keys) {
+      key = keys[key];
+      if (currentTeams[key].members.join(" ").match(teamRegex)) {
+        html += draftToHTML(currentTeams[key]);
+        j++;
+      }
+      if (j === 3) {
+        html += '</div><!--End of row--><div class="row mt-4 mb-4">';
+        j = 0;
+      }
     }
-    if (j === 3) {
-      html += '</div><!--End of row--><div class="row mt-4 mb-4">';
-      j = 0;
-    }
+    html += `<div class="text-center">
+        <button class="btn btn-danger" onclick="clearTeams()" style="max-width: 18rem;">Clear Teams</button>
+      </div>`;
+    draftTeams.innerHTML = html;
   }
-  draftTeams.innerHTML = html;
 }
 
 function savePeople() {
-  fetch(`/draft/set/${tourney.id}`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ people: tourney.people }),
+  return new Promise((resolve, reject) => {
+    fetch(`/draft/set/${tourney.id}`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ people: tourney.people }),
+    })
+      .then(() => {
+        reload();
+        resolve();
+      })
+      .catch((err) => reject(err));
+  });
+}
+
+function clearTeams() {
+  Swal.fire({
+    title: "Are you sure?",
+    text: "Deleting the current teams is irreversible",
+    icon: "question",
+    showCancelButton: true,
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      for (let person in tourney.people.og) {
+        person = tourney.people.og[person];
+        person.picked = false;
+        console.log(person);
+      }
+      tourney.people.teams = {};
+      await savePeople();
+      reload();
+    }
   });
 }
 
@@ -196,7 +229,7 @@ function dissolveTeam(teamKey) {
         }
       });
       delete tourney.people.teams[teamKey];
-      savePeople();
+      await savePeople();
       reloadDraft();
       Swal.fire("Done!", "", "success");
     }
@@ -223,6 +256,51 @@ function draftToHTML(team) {
         </ul>
     </div>
   </div><!--End of col-->`;
+}
+
+function expand() {
+  let tierOptions = "";
+  for (let tier in tiers) {
+    tierOptions += `<option value="${tier}">Tier ${tier}</option>`;
+  }
+  const selectHTML = `<select id="tierExpand" class="form-select" style="width:8rem; display:inline;" onchange="handleExpandPopUp()">${tierOptions}</select>`;
+  Swal.fire({
+    title: "Tiers available: " + selectHTML,
+    width: window.screen.width * 0.6,
+    html: "<div id='expand' class='d-flex justify-content-center align-items-center'></div>",
+    allowOutsideClick: false,
+    showConfirmButton: false,
+    showCloseButton: true,
+    didOpen: handleExpandPopUp,
+  });
+}
+
+function handleExpandPopUp() {
+  const expandHTML = document.getElementById("expand");
+  const selectedTier = document.getElementById("tierExpand").value;
+  let tableContent = "";
+  for (let person in tiers[selectedTier]) {
+    person = tiers[selectedTier][person];
+    if (!person.picked) {
+      tableContent += `
+    <tr>
+      <th class="font-weight-normal">${person.name}</th>
+    </tr>
+    `;
+    }
+  }
+  let table = `
+  <table class="table table-striped" style="max-width: 30rem">
+    <thead>
+      <tr>
+        <th scope="col">Tier ${selectedTier}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tableContent}
+    </tbody>
+  </table>`;
+  expandHTML.innerHTML = table;
 }
 
 function reloadDraft(filter) {

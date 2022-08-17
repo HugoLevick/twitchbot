@@ -160,7 +160,7 @@ const commands = [
   new Command("!myteam", "", "action", async ({ username }, { client, target }) => {
     const nextT = upcomingT[0];
     const people = await obtainPeople(nextT.id);
-    const teams = nextT.randomized ? people.teams : people.og;
+    const teams = nextT.randomized || nextT.mode === "draft" ? people.teams : people.og;
     const [isIn, key] = isInTourney(teams, username); //returns [true/false, key]
     if (isIn) {
       const inTeam = teams[key];
