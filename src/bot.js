@@ -446,54 +446,51 @@ export async function scheduleTourneys() {
   });
 }
 
-try {
-  const connection = mysql.createConnection({
-    host: mysqlCredentials.localhost,
-    user: mysqlCredentials.user,
-    password: mysqlCredentials.password,
-  });
+const connection = mysql.createConnection({
+  host: mysqlCredentials.localhost,
+  user: mysqlCredentials.user,
+  password: mysqlCredentials.password,
+});
 
-  async function createDatabase() {
-    return new Promise(async (resolve, reject) => {
-      await queryDatabase(`USE ${bottedChannel};`).catch(async () => {
-        console.log(`Creating database ${bottedChannel}...`);
-        //prettier-ignore
-        await queryDatabase(`CREATE DATABASE ${bottedChannel};`).catch((err)=>reject(err));
-        //prettier-ignore
-        await queryDatabase(`USE ${bottedChannel};`).catch((err)=>reject(err));
-        //prettier-ignore
-        await queryDatabase("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize VARCHAR(50) NOT NULL DEFAULT '0', entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, link VARCHAR(511), people JSON NOT NULL DEFAULT ('{}'), status VARCHAR(10) NOT NULL DEFAULT 'pending', PRIMARY KEY(id));").catch((err)=>reject(err));
-
-        //prettier-ignore
-
-        await queryDatabase("CREATE TABLE banned (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-');").catch((err) => reject(err));
-
-        await queryDatabase("CREATE TABLE version (version VARCHAR(20) NOT NULL DEFAULT '1.0');").catch((err) => reject(err));
-
-        await queryDatabase('INSERT INTO version VALUES("1.2")');
-
-        console.log("Database created!");
-        console.log(`Using database ${bottedChannel}`);
-      });
-      resolve();
-    });
-  }
-
-  connection.connect(async (err) => {
-    if (err) throw err;
-    console.log("Connected to database");
-    await createDatabase()
-      .then(async () => {
-        await checkDbValidity();
-        await checkTourneysStatus().catch((err) => console.log(err));
-        await scheduleTourneys().catch((err) => console.log(err));
-        startServer();
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  });
-} catch (err) {
-  console.log(err);
-}
 export default connection;
+
+async function createDatabase() {
+  return new Promise(async (resolve, reject) => {
+    await queryDatabase(`USE ${bottedChannel};`).catch(async () => {
+      console.log(`Creating database ${bottedChannel}...`);
+      //prettier-ignore
+      await queryDatabase(`CREATE DATABASE ${bottedChannel};`).catch((err)=>reject(err));
+      //prettier-ignore
+      await queryDatabase(`USE ${bottedChannel};`).catch((err)=>reject(err));
+      //prettier-ignore
+      await queryDatabase("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize VARCHAR(50) NOT NULL DEFAULT '0', entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, link VARCHAR(511), people JSON NOT NULL DEFAULT ('{}'), status VARCHAR(10) NOT NULL DEFAULT 'pending', PRIMARY KEY(id));").catch((err)=>reject(err));
+
+      //prettier-ignore
+
+      await queryDatabase("CREATE TABLE banned (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-');").catch((err) => reject(err));
+
+      await queryDatabase("CREATE TABLE version (version VARCHAR(20) NOT NULL DEFAULT '1.0');").catch((err) => reject(err));
+
+      await queryDatabase('INSERT INTO version VALUES("1.2")');
+
+      console.log("Database created!");
+      console.log(`Using database ${bottedChannel}`);
+    });
+    resolve();
+  });
+}
+
+connection.connect(async (err) => {
+  if (err) throw err;
+  console.log("Connected to database");
+  await createDatabase()
+    .then(async () => {
+      await checkDbValidity();
+      await checkTourneysStatus().catch((err) => console.log(err));
+      await scheduleTourneys().catch((err) => console.log(err));
+      startServer();
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+});
