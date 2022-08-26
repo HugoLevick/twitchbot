@@ -11,7 +11,6 @@ export let upcomingT = [];
 export let schedules = {};
 
 export const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
-if (bottedChannel == "h_levick") mysqlCredentials.password = "root";
 
 const options = {
   // options: {
@@ -100,7 +99,6 @@ function stripCommand(message) {
   return [command, split.splice(startsAt + 1, split.length)];
 }
 
-/*
 export async function addToTourney(name, captain, members, tourneyId, tier = 0) {
   return await new Promise(async (resolve) => {
     const banned = await retrieveBanned().then((res) => {
@@ -496,4 +494,3 @@ connection.connect(async (err) => {
       console.log(err);
     });
 });
-*/
