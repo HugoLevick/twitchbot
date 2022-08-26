@@ -480,6 +480,7 @@ async function createDatabase() {
   });
 }
 
+console.log("conncecting");
 connection.connect(async (err) => {
   if (err) throw err;
   console.log("Connected to database");
