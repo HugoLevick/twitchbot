@@ -10,7 +10,7 @@ import Solo, { Team, Draft } from "./teamClass.js";
 export let upcomingT = [];
 export let schedules = {};
 
-export const bottedChannel = "ElvynCalderon"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+export const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
 if (bottedChannel == "h_levick") mysqlCredentials.password = "root";
 
 const options = {

@@ -29,6 +29,10 @@ export default function startServer() {
     res.sendFile(path.join(__dirname, "/../index.html"));
   });
 
+  app.get("/bracket", function (req, res) {
+    res.sendFile(path.join(__dirname, "/../bracket/bracket.html"));
+  });
+
   app.get("/managetourneys", function (req, res) {
     res.sendFile(path.join(__dirname, "/../tourneys/managetourneys.html"));
   });

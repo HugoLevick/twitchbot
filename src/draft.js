@@ -4,6 +4,7 @@ let currentList;
 let saveBtn;
 let tiers = {};
 let currentTeam = {};
+let expandPopUp = false;
 const defaultHTML = `<li class="list-group-item">
                         <button id="button" class="text-start p-0 border-0 align-text-bottom" style="width: 100%; background-color: unset" disabled>
                             No more players
@@ -116,6 +117,7 @@ function moveToTeam(username, group) {
       break;
   }
   reloadDraft();
+  if (expandPopUp) handleExpandPopUp();
 }
 
 async function saveTeam() {
@@ -140,11 +142,12 @@ async function saveTeam() {
     });
   }
   keys = Object.keys(tourney.people.teams ?? {});
-  key = keys.length > 0 ? keys[keys.length - 1] : ["0"];
+  let key = keys.length > 0 ? keys[keys.length - 1] : ["0"];
   key = parseInt(key) + 1;
   if (!tourney.people.teams) tourney.people.teams = {};
   tourney.people.teams[key] = new Team(newTeamMembers[0], newTeamMembers[0], newTeamMembers, key, true);
   await savePeople();
+  reload();
   currentTeam = {};
   reloadDraft();
 }
@@ -172,6 +175,7 @@ function loadDraftTeams(filter) {
         <button class="btn btn-danger" onclick="clearTeams()" style="max-width: 18rem;">Clear Teams</button>
       </div>`;
     draftTeams.innerHTML = html;
+    feather.replace({ "aria-hidden": "true" });
   }
 }
 
@@ -186,7 +190,6 @@ function savePeople() {
       body: JSON.stringify({ people: tourney.people }),
     })
       .then(() => {
-        reload();
         resolve();
       })
       .catch((err) => reject(err));
@@ -204,7 +207,6 @@ function clearTeams() {
       for (let person in tourney.people.og) {
         person = tourney.people.og[person];
         person.picked = false;
-        console.log(person);
       }
       tourney.people.teams = {};
       await savePeople();
@@ -213,27 +215,25 @@ function clearTeams() {
   });
 }
 
-function dissolveTeam(teamKey) {
+async function editTeam(teamKey) {
   let dissolvedTeam = tourney.people.teams[teamKey];
-  Swal.fire({
-    title: "Are you sure?",
-    text: `Do you want to dissolve team "${dissolvedTeam.name}"`,
-    icon: "question",
-    showCancelButton: true,
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      dissolvedTeam.members.forEach((p) => {
-        const [isIn, key] = isInTourney(tourney.people.og, p);
-        if (isIn) {
-          tourney.people.og[key].picked = false;
-        }
-      });
-      delete tourney.people.teams[teamKey];
-      await savePeople();
-      reloadDraft();
-      Swal.fire("Done!", "", "success");
+  dissolvedTeam.members.forEach((p) => {
+    const [isIn, key] = isInTourney(tourney.people.og, p);
+    if (isIn) {
+      tourney.people.og[key].picked = false;
+      currentTeam[key] = tourney.people.og[key];
     }
   });
+  delete tourney.people.teams[teamKey];
+  await savePeople();
+  for (let member in currentTeam) {
+    tourney.people.og[member].picked = true;
+    member = currentTeam[member];
+    console.log(member);
+    member.picked = true;
+  }
+  fillCurrentTeam();
+  loadDraftTeams();
 }
 
 function draftToHTML(team) {
@@ -244,10 +244,10 @@ function draftToHTML(team) {
         <p class="h3">Team ${team.name.length > 8 ? team.name.slice(0, 9) + "..." : team.name}</p>
         <div class="btn-group">
             <button id="btnteam${team.key}" class="btn btn-outline-primary" onClick="copyText(${team.key})">Copy</button>
-            <button type="button" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" onclick="dissolveTeam(${
+            <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center" onclick="editTeam(${
               team.key
             })" ${tourney.status === "ended" ? "disabled" : ""}>
-                <span data-feather="x">X</span>
+                <span data-feather="edit">X</span>
             </button>
         </div>
         </div>
@@ -272,19 +272,28 @@ function expand() {
     showConfirmButton: false,
     showCloseButton: true,
     didOpen: handleExpandPopUp,
+    didDestroy: () => {
+      expandPopUp = false;
+    },
   });
 }
 
 function handleExpandPopUp() {
+  expandPopUp = true;
   const expandHTML = document.getElementById("expand");
   const selectedTier = document.getElementById("tierExpand").value;
   let tableContent = "";
   for (let person in tiers[selectedTier]) {
     person = tiers[selectedTier][person];
     if (!person.picked) {
+      //prettier-ignore
       tableContent += `
     <tr>
-      <th class="font-weight-normal">${person.name}</th>
+      <th class="font-weight-normal">
+      <button class="text-center p-0 border-0 align-text-center" style="width: 100%; background-color: unset" onclick="moveToTeam('${person.name}','current')">
+        ${person.name} <span class="align-text-bottom" data-feather="arrow-right"> ></span>
+      </button>
+      </th>
     </tr>
     `;
     }
@@ -301,6 +310,7 @@ function handleExpandPopUp() {
     </tbody>
   </table>`;
   expandHTML.innerHTML = table;
+  feather.replace({ "aria-hidden": "true" });
 }
 
 function reloadDraft(filter) {
