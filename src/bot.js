@@ -446,10 +446,8 @@ export async function scheduleTourneys() {
   });
 }
 
-let connection;
-
 try {
-  connection = mysql.createConnection({
+  const connection = mysql.createConnection({
     host: mysqlCredentials.localhost,
     user: mysqlCredentials.user,
     password: mysqlCredentials.password,
