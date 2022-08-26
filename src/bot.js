@@ -100,6 +100,7 @@ function stripCommand(message) {
   return [command, split.splice(startsAt + 1, split.length)];
 }
 
+/*
 export async function addToTourney(name, captain, members, tourneyId, tier = 0) {
   return await new Promise(async (resolve) => {
     const banned = await retrieveBanned().then((res) => {
@@ -495,3 +496,4 @@ connection.connect(async (err) => {
       console.log(err);
     });
 });
+*/
