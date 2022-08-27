@@ -446,10 +446,12 @@ export async function scheduleTourneys() {
   });
 }
 
-const connection = mysql.createConnection({
-  host: mysqlCredentials.localhost,
-  user: mysqlCredentials.user,
-  password: mysqlCredentials.password,
+const connection = new Pool({
+  user: "root",
+  host: "dpg-cc4jep1gp3jiap6hdotg-a",
+  database: "henzzito",
+  password: "TwuK2hKKdw3YOFE7IN8kwm8jVMyVEt6m",
+  port: 5432,
 });
 
 export default connection;
