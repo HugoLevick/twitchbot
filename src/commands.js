@@ -102,7 +102,7 @@ const commands = [
     }
   }),
   new Command("!in", "", "action", async ({ username }, { client, target, checkInsAllowed, functions }) => {
-    if (checkInsAllowed) {
+    if (checkInsAllowed && upcomingT[0]) {
       const nextT = upcomingT[0];
       const res = await functions.check(nextT.id, username, "in");
       if (res) {
@@ -112,9 +112,12 @@ const commands = [
         client.say(target, `@${username} wasnt in the tourney`);
         console.log(username, "wasnt in the tourney and tried to check in");
       }
-    } else {
+    } else if (upcomingT[0]) {
       client.say(target, `@${username} check-ins are disabled`);
       console.log(username, "tried to check in (disabled)");
+    } else {
+      client.say(target, `@${username} there aren't any tourneys open for registration`);
+      console.log(username, "Tried to check in tourney, there's any");
     }
   }),
   new Command("!checkin", "", "action", async (ctx, { client, target, params, functions }) => {

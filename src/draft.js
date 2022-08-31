@@ -168,8 +168,12 @@ function loadDraftTeams(filter) {
         j = 0;
       }
     }
-    html += `<div class="text-center">
-        <button class="btn btn-danger" onclick="clearTeams()" style="max-width: 18rem;">Clear Teams</button>
+    //prettier-ignore
+    html += `
+      <div class="text-center">
+        <button class="btn btn-danger" onclick="clearTeams()" style="max-width: 18rem;" ${tourney.status === "ended" ? "disabled" : ""}>
+          Clear Teams
+        </button>
       </div>`;
     draftTeams.innerHTML = html;
   }
