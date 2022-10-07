@@ -109,8 +109,13 @@ function kick(username) {
     confirmButtonText: "Yes",
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch(`/people/${tourney.id}/${username}`, {
+      fetch(`/people/${tourney.id}/`, {
         method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: username }),
       })
         .then((response) => response.json())
         .then((res) => {
@@ -134,13 +139,13 @@ async function check(username, inOrOut) {
     confirmButtonText: "Yes",
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch(`/check/${tourney.id}/${username}/`, {
+      fetch(`/check/${tourney.id}/`, {
         method: "PUT",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ check: inOrOut }),
+        body: JSON.stringify({ check: inOrOut, username: username }),
       })
         .then((response) => response.json())
         .then((res) => {
@@ -148,7 +153,11 @@ async function check(username, inOrOut) {
             Swal.fire(`${username} has been checked ${inOrOut}!`, "", "success");
             reload();
           } else {
-            Swal.fire(`Couldn't check ${inOrOut} ${username}, could have left before being checked in`, "error");
+            Swal.fire(
+              `Couldn't check ${inOrOut} ${username}`,
+              "Could have left before being checked in or their name has special characters",
+              "error"
+            );
             reload();
           }
         });
@@ -164,8 +173,13 @@ async function ban(username) {
     confirmButtonText: "Yes",
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch(`/people/${tourney.id}/${username}`, {
+      fetch(`/people/${tourney.id}/`, {
         method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: username }),
       }).then(() => {
         fetch("/banned", {
           method: "POST",
@@ -222,6 +236,7 @@ async function addToTourney() {
           html: html,
           showCloseButton: true,
           showCancelButton: true,
+          showConfirmButton: true,
         }).then((result) => {
           if (result.isConfirmed) {
             if (tourney.mode === "solos") {
@@ -340,6 +355,11 @@ async function clearList() {
     if (result.isConfirmed) {
       fetch(`/people/${tourney.id}`, {
         method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reset: true }),
       })
         .then((response) => response.json())
         .then((res) => {

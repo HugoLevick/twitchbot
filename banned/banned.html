@@ -71,7 +71,7 @@
   </head>
   <body>
     <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#">Henzzito 1.4 - by h_levick</a>
+      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#">Henzzito 1.5 - by h_levick</a>
       <button
         class="navbar-toggler position-absolute d-md-none collapsed"
         type="button"
@@ -121,6 +121,7 @@
                 </a>
               </li>
             </ul>
+            <div id="liveAlertPlaceholder"></div>
           </div>
           <script
             src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js"
@@ -192,6 +193,7 @@
     <script src="/src/bannedScript.js"></script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/src/getChannelName.js"></script>
+    <script src="/src/liveAlert.js"></script>
     <script>
       (async () => {
         document.getElementById("channelName").innerHTML = await getChannelName();

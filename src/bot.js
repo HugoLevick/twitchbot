@@ -152,7 +152,14 @@ export async function addToTourney(name, captain, members, tourneyId, tier = 0) 
 }
 
 export function isInTourney(people, username) {
-  let userRegex = new RegExp(`^${username}$`, "i");
+  let RegExpString = username
+    .replace(/\*/i, "\\*")
+    .replace(/\./i, "\\.")
+    .replace(/\^/i, "\\^")
+    .replace(/\$/i, "\\$")
+    .replace(/\[/i, "\\[")
+    .replace(/\]/i, "\\]");
+  let userRegex = new RegExp(`^${RegExpString}$`, "i");
   for (let team in people) {
     let key = team;
     team = people[team];
@@ -298,10 +305,16 @@ async function checkDbValidity() {
   return new Promise(async (resolve) => {
     let [ver] = await queryDatabase("SELECT * FROM version").catch(() => "0");
     ver = ver.version;
-    if (ver != "1.2") {
+    if (ver != "1.5") {
       console.log("Version mismatch, updating database...");
-      await queryDatabase("drop database " + bottedChannel);
-      await createDatabase();
+      if (ver === "1.2") {
+        await queryDatabase(
+          "CREATE TABLE alerts (id INT UNSIGNED NOT NULL AUTO_INCREMENT, username varchar(255), content varchar(1000), acknowledged BOOLEAN DEFAULT 0, PRIMARY KEY(id));"
+        ).catch((err) => reject(err));
+      } else {
+        await queryDatabase("drop database " + bottedChannel);
+        await createDatabase();
+      }
 
       console.log("Done");
     }
@@ -470,9 +483,13 @@ async function createDatabase() {
 
       await queryDatabase("CREATE TABLE banned (username VARCHAR(255) UNIQUE NOT NULL DEFAULT '-');").catch((err) => reject(err));
 
+      await queryDatabase(
+        "CREATE TABLE alerts (id INT UNSIGNED NOT NULL AUTO_INCREMENT, username varchar(255), content varchar(1000), acknowledged BOOLEAN DEFAULT 0, PRIMARY KEY(id));"
+      ).catch((err) => reject(err));
+
       await queryDatabase("CREATE TABLE version (version VARCHAR(20) NOT NULL DEFAULT '1.0');").catch((err) => reject(err));
 
-      await queryDatabase('INSERT INTO version VALUES("1.2")');
+      await queryDatabase('INSERT INTO version VALUES("1.5")');
 
       console.log("Database created!");
       console.log(`Using database ${bottedChannel}`);

@@ -101,8 +101,12 @@ const commands = [
       console.log(`${username} tried to join a tourney when there wasnt one`);
     }
   }),
-  new Command("!in", "", "action", async ({ username }, { client, target, checkInsAllowed, functions }) => {
+  new Command("!in", "", "action", async (ctx, { client, target, checkInsAllowed, functions, params }) => {
     if (checkInsAllowed && upcomingT[0]) {
+      let username = "";
+      if (params[0] && functions.isModOrOwner(ctx)) username = params[0].replace(/@/g, "");
+      else username = ctx.username;
+      console.log(username, params[0]);
       const nextT = upcomingT[0];
       const res = await functions.check(nextT.id, username, "in");
       if (res) {
@@ -160,7 +164,10 @@ const commands = [
       }
     }
   }),
-  new Command("!myteam", "", "action", async ({ username }, { client, target }) => {
+  new Command("!checkteam", "", "action", async (ctx, { client, target, params }) => {
+    let username = "";
+    if (params[0]) username = params[0].replace(/@/g, "");
+    else username = ctx.username;
     const nextT = upcomingT[0];
     const people = await obtainPeople(nextT.id);
     const teams = nextT.randomized || nextT.mode === "draft" ? people.teams : people.og;
@@ -169,16 +176,22 @@ const commands = [
       const inTeam = teams[key];
       if (inTeam.members && inTeam.in) {
         inTeam.members = inTeam.members.filter((m) => m !== undefined && m !== null);
-        client.say(target, `@${username} Team ${inTeam.name} - ${inTeam.members?.join(" / ")}`);
+        client.say(target, `@${ctx.username} Team ${inTeam.name} - ${inTeam.members?.join(" / ")}`);
       } else if (inTeam.in) {
-        client.say(target, `@${username} Team ${key}`);
+        client.say(target, `@${ctx.username} Team ${key}`);
       } else {
-        client.say(target, `@${username} you're not checked-in`);
+        client.say(target, `@${ctx.username} you're not checked-in`);
       }
       console.log(`${username} is in team ${key}`);
     } else {
-      client.say(target, `@${username} is not in the tourney`);
-      console.log(`${username} was not in the torney (tried to see team)`);
+      const [isIn, key] = isInTourney(people.og, username); //returns [true/false, key]
+      if (isIn) {
+        client.say(target, `${username} is not in a team yet`);
+        console.log(`${username} was not in a team (tried to see team)`);
+      } else {
+        client.say(target, `${username} is not in the tourney`);
+        console.log(`${username} was not in the torney (tried to see team)`);
+      }
     }
   }),
   new Command("!signhelp", "", "action", ({ username }, { client, target }) => {
@@ -280,9 +293,47 @@ const commands = [
         }
       });
   }),
+  new Command("!tourneykick", "", "action", async (ctx, { client, target, params, functions }) => {
+    const nextT = upcomingT[0];
+    if (functions.isModOrOwner(ctx)) {
+      const username = params[0].replace("@", "");
+      const people = await obtainPeople(nextT.id);
+      const [isIn, key] = isInTourney(people.og, username);
+      if (isIn) {
+        delete people.og[key];
+        await queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${nextT.id}`)
+          .then(() => {
+            client.say(target, `@${ctx.username} kicked ${username}`);
+            console.log(`Kicked ${username} by request of ${ctx.username}`);
+            return true;
+          })
+          .catch((err) => {
+            client.say(target, `@${ctx.username} couldn't kick ${username}`);
+            console.log("couldn't kick " + username, err);
+            return false;
+          });
+      } else {
+        client.say(target, `@${ctx.username} player ${username} wasn't in the tourney`);
+        console.log(`${ctx.username} tried kicking ${username} but wasn't in the tourney`);
+      }
+    }
+  }),
+
+  new Command("!tourneyalert", "", "action", async (ctx, { client, target, params, functions }) => {
+    if (functions.isModOrOwner(ctx) && params.length > 0) {
+      addAlert(ctx.username, params.join(" "));
+      client.say(target, `@${ctx.username} alert queued!`);
+      console.log(`${ctx.username} queued an alert`);
+    }
+  }),
+
   new Command("!henzzito", "", "action", ({}, { client, target }) => {
     client.say(target, `Henzzito is the first twitch bot developed by @h_levick`);
   }),
 ];
 
 export default commands;
+
+export function addAlert(username, message) {
+  queryDatabase(`INSERT INTO alerts (username, content) VALUES ('${username}', '${message}')`);
+}

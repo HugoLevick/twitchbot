@@ -124,11 +124,22 @@ export default function startServer() {
     res.sendFile(path.join(__dirname, "/../tourneys/edit/editTourney.html"));
   });
 
-  app.put("/check/:id/:name", async function (req, res) {
+  app.get("/alerts/", function (req, res) {
+    queryDatabase("SELECT * FROM alerts WHERE acknowledged = 0")
+      .then((result) => {
+        res.send(JSON.stringify(result));
+      })
+      .catch((err) => {
+        console.log(err);
+        res.send(JSON.stringify([]));
+      });
+  });
+
+  app.put("/check/:id/", async function (req, res) {
     if (req.body.check === "in") {
-      res.send(await utilities.functions.check(req.params.id, req.params.name, "in"));
+      res.send(await utilities.functions.check(req.params.id, req.body.username, "in"));
     } else {
-      res.send(await utilities.functions.check(req.params.id, req.params.name, "out"));
+      res.send(await utilities.functions.check(req.params.id, req.body.username, "out"));
     }
   });
 
@@ -138,6 +149,17 @@ export default function startServer() {
 
   app.put("/tourneys/:id/subs/:name", async function (req, res) {
     res.send(await editSub(req.params.name, req.params.id, req.body.edit));
+  });
+
+  app.put("/alerts/:id", function (req, res) {
+    queryDatabase(`UPDATE alerts SET acknowledged = ${req.body.acknowledged} WHERE id=${req.params.id}`)
+      .then(() => {
+        res.send(JSON.stringify(true));
+      })
+      .catch((err) => {
+        console.log(err);
+        res.send(JSON.stringify(false));
+      });
   });
 
   app.post("/people", async function (req, res) {
@@ -251,21 +273,19 @@ export default function startServer() {
       });
   });
 
-  app.delete("/people/:id", async function (req, res) {
-    res.send(
-      await queryDatabase("UPDATE tourneys SET people=('{}') WHERE id=" + req.params.id)
-        .then(() => {
-          return true;
-        })
-        .catch((err) => {
-          console.log(err);
-          return false;
-        })
-    );
-  });
-
-  app.delete("/people/:id/:name", async function (req, res) {
-    res.send(await utilities.functions.removeFromTourney(req.params.name, req.params.id));
+  app.delete("/people/:id/", async function (req, res) {
+    if (req.body.reset) {
+      res.send(
+        await queryDatabase("UPDATE tourneys SET people=('{}') WHERE id=" + req.params.id)
+          .then(() => {
+            return true;
+          })
+          .catch((err) => {
+            console.log(err);
+            return false;
+          })
+      );
+    } else res.send(await utilities.functions.removeFromTourney(req.body.username, req.params.id));
   });
 
   app.delete("/subs/:id", async function (req, res) {
