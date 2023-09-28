@@ -1,16 +1,27 @@
+import dotenv from "dotenv";
+dotenv.config();
 import tmi from "tmi.js";
 import mysql from "mysql2";
 import startServer from "./httpServer.js";
-import mysqlCredentials from "../mySQLCredentials.js";
-import { scheduleJob } from "node-schedule";
+import { cancelJob, scheduleJob } from "node-schedule";
 import { DateTime } from "luxon";
 import commands from "./commands.js";
 import Solo, { Team, Draft } from "./teamClass.js";
 
+const mysqlCredentials = {
+  host: "localhost",
+  user: "root",
+  password: process.env.MYSQLPASSWORD,
+};
+
 export let upcomingT = [];
 export let schedules = {};
 
-export const bottedChannel = "h_levick"; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+export const bottedChannel = process.env.TWITCH_USERNAME; //HERE YOU TYPE THE NAME OF YOUR CHANNEL
+if (!bottedChannel || !process.env.MYSQLPASSWORD || !process.env.BOT_USERNAME || !process.env.BOT_PASSWORD) {
+  throw new Error(".env file incomplete. Reset settings and install again.");
+}
+
 if (bottedChannel == "h_levick") mysqlCredentials.password = "root";
 
 const options = {
@@ -18,8 +29,8 @@ const options = {
   //   debug: true,
   // },
   identity: {
-    username: "henzzito", //HERE YOU TYPE THE USERNAME OF THE BOT
-    password: "oauth:c013cz4hbrzxjwdepbpvzphxl5nl9a", //HERE YOU TYPE THE AUTH PASS FROM THE WEBSITE www.twitchapps.com/tmi
+    username: process.env.BOT_USERNAME, //HERE YOU TYPE THE USERNAME OF THE BOT
+    password: process.env.BOT_PASSWORD, //HERE YOU TYPE THE AUTH PASS FROM THE WEBSITE www.twitchapps.com/tmi
   },
   channels: [bottedChannel],
 };
@@ -127,12 +138,13 @@ export async function addToTourney(name, captain, members, tourneyId, tier = 0) 
           signedUp[key] = new Solo(name, key);
         } else if (mode === "draft") {
           signedUp[key] = new Draft(name, tier, key);
-        } else if (mode !== "solos" || !randomized) {
+        } else if (mode !== "solos") {
           signedUp[key] = new Team(name, captain, [captain, ...members], key);
           people.teams[key] = new Team(name, captain, [captain, ...members], key);
         } else if (mode && mode === "solos") {
           signedUp[key] = new Team(name, captain, [captain], key);
           people.teams[key] = new Team(name, captain, [captain], key);
+          console.log(people.teams[key]);
         }
         queryDatabase(`UPDATE tourneys SET people=('${JSON.stringify(people)}') WHERE id=${tourneyId}`)
           .then(() => {
@@ -175,7 +187,9 @@ export function isInTourney(people, username) {
     if (team.members) {
       for (let m in team.members) {
         m = team.members[m];
-        if (m.match(userRegex)) return [true, key];
+        if (m.match(userRegex)) {
+          return [true, key];
+        }
       }
     }
   }
@@ -302,18 +316,30 @@ export async function queryDatabase(sql) {
 }
 
 async function checkDbValidity() {
-  return new Promise(async (resolve) => {
+  return new Promise(async (resolve, reject) => {
     let [ver] = await queryDatabase("SELECT * FROM version").catch(() => "0");
     ver = ver.version;
     if (ver != "1.5") {
       console.log("Version mismatch, updating database...");
-      if (ver === "1.2") {
-        await queryDatabase(
-          "CREATE TABLE alerts (id INT UNSIGNED NOT NULL AUTO_INCREMENT, username varchar(255), content varchar(1000), acknowledged BOOLEAN DEFAULT 0, PRIMARY KEY(id));"
-        ).catch((err) => reject(err));
-      } else {
-        await queryDatabase("drop database " + bottedChannel);
-        await createDatabase();
+      switch (ver) {
+        case "1.2":
+          await queryDatabase(
+            "CREATE TABLE alerts (id INT UNSIGNED NOT NULL AUTO_INCREMENT, username varchar(255), content varchar(1000), acknowledged BOOLEAN DEFAULT 0, PRIMARY KEY(id));"
+          ).catch((err) => reject(err));
+
+          await queryDatabase("UPDATE version SET version = '1.5';").catch((err) => reject(err));
+          checkDbValidity();
+          break;
+        // case "1.5":
+        //   await queryDatabase("ALTER TABLE users ADD email VARCHAR(255);").catch((err) => reject(err));
+
+        //   await queryDatabase("UPDATE version SET version = '1.6';").catch((err) => reject(err));
+        //   checkDbValidity();
+        //   break;
+        default:
+          await queryDatabase("drop database " + bottedChannel);
+          await createDatabase();
+          break;
       }
 
       console.log("Done");
@@ -441,7 +467,7 @@ export async function scheduleTourneys() {
   return new Promise(async (resolve) => {
     console.log("Scheduling all tourneys");
     upcomingT = tourneyLocalT(await queryDatabase("SELECT * FROM TOURNEYS WHERE finish > NOW() ORDER BY start ASC;"), "jsdate");
-    console.log(`${upcomingT.length} tourney${upcomingT.length == 1 ? "s" : ""} in the horizon!`);
+    console.log(`${upcomingT.length} tourney${upcomingT.length == 1 ? "" : "s"} in the horizon!`);
     if (upcomingT.length > 0) {
       for (let tourney in upcomingT) {
         tourney = upcomingT[tourney];
@@ -453,6 +479,13 @@ export async function scheduleTourneys() {
           await queryDatabase("UPDATE tourneys SET status='ended' WHERE id =" + tourney.id);
           console.log(`Tourney ${tourney.name.length > 15 ? tourney.name.substring(0, 15) + "..." : tourney.name} has ended!`);
         });
+
+        //Cancel previous jobs
+        if (schedules[tourney.id]) {
+          cancelJob(schedules[tourney.id].startSchedule);
+          cancelJob(schedules[tourney.id].endSchedule);
+        }
+        //Save new jobs
         schedules[tourney.id] = { startSchedule: startSchedule, endSchedule: endSchedule };
       }
     }
@@ -461,7 +494,7 @@ export async function scheduleTourneys() {
 }
 
 const connection = mysql.createConnection({
-  host: mysqlCredentials.localhost,
+  host: mysqlCredentials.host,
   user: mysqlCredentials.user,
   password: mysqlCredentials.password,
 });
@@ -477,7 +510,7 @@ async function createDatabase() {
       //prettier-ignore
       await queryDatabase(`USE ${bottedChannel};`).catch((err)=>reject(err));
       //prettier-ignore
-      await queryDatabase("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos',prize VARCHAR(50) NOT NULL DEFAULT '0', entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, link VARCHAR(511), people JSON NOT NULL DEFAULT ('{}'), status VARCHAR(10) NOT NULL DEFAULT 'pending', PRIMARY KEY(id));").catch((err)=>reject(err));
+      await queryDatabase("CREATE TABLE tourneys (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL DEFAULT '-', start datetime NOT NULL DEFAULT NOW(), finish datetime NOT NULL DEFAULT NOW(), mode VARCHAR(15) NOT NULL DEFAULT 'solos', prize VARCHAR(50) NOT NULL DEFAULT '0', entry INT UNSIGNED NOT NULL DEFAULT 0, randomized BOOLEAN NOT NULL DEFAULT 0, link VARCHAR(511), people JSON NOT NULL DEFAULT ('{}'), status VARCHAR(10) NOT NULL DEFAULT 'pending', PRIMARY KEY(id));").catch((err)=>reject(err));
 
       //prettier-ignore
 
@@ -506,7 +539,7 @@ connection.connect(async (err) => {
       await checkDbValidity();
       await checkTourneysStatus().catch((err) => console.log(err));
       await scheduleTourneys().catch((err) => console.log(err));
-      startServer();
+      startServer(client, bottedChannel);
     })
     .catch((err) => {
       console.log(err);

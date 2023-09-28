@@ -6,7 +6,6 @@ function isInTourney(people, username) {
     .replace(/\$/i, "\\$")
     .replace(/\[/i, "\\[")
     .replace(/\]/i, "\\]");
-  console.log(RegExpString);
   let userRegex = new RegExp(`^${RegExpString}$`, "i");
   for (let team in people) {
     let key = team;

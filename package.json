@@ -1,11 +1,11 @@
 {
-  "name": "henzzito",
+  "name": "tourneybot",
   "version": "1.0.0",
   "description": "",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/henzzito.js"
+    "dev": "nodemon src/bot.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +13,7 @@
   "dependencies": {
     "body-parse": "^0.1.0",
     "body-parser": "^1.20.0",
+    "dotenv": "^16.3.1",
     "express": "^4.18.1",
     "luxon": "^3.0.1",
     "mysql2": "^2.3.3",

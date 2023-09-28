@@ -1,4 +1,4 @@
-import express from "express";
+import express, { response } from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import connection, {
@@ -20,7 +20,7 @@ import Solo, { Draft } from "./teamClass.js";
 
 const app = express();
 
-export default function startServer() {
+export default function startServer(client, target) {
   app.use(bodyParser.urlencoded({ extended: false })); //DEPENDENCIA PARA MANIPULAR DATOS DE BODY
   app.use(bodyParser.json());
   app.use(express.static(__dirname + "/../"));
@@ -219,6 +219,22 @@ export default function startServer() {
     })
   });
 
+  app.put("/tourneys/:id/link", async (req, res) => {
+    const { link } = req.body;
+    const { id } = req.params;
+    const [tournament] = await queryDatabase(`SELECT name FROM tourneys WHERE id=${id}`).then((response) => response);
+
+    queryDatabase(`UPDATE tourneys SET link='${link}' WHERE id=${id}`)
+      .then(async () => {
+        await client.say(target, `The bracket for the tournament ${tournament.name} has been added! ${link}`);
+        scheduleTourneys();
+        res.end();
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  });
+
   app.post("/tourneys/:id", (req, res) => {
     if (req.body._method === "PUT") {
       const { tourneyName, tourneyPrize, radiosPrize, freeEntry, entryFee, selectedMode, randomized, tourneyLink, id } = req.body;
@@ -229,7 +245,7 @@ export default function startServer() {
       .then(()=> {
         checkTourneysStatus(req.params.id);
         scheduleTourneys();
-        res.redirect('/managetourneys/?success=1');
+        res.redirect('/managetourneys/?message="The tourney has been edited!"');
       })
       .catch((err) => {
         console.log(err);

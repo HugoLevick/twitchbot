@@ -176,6 +176,8 @@ function loadDraftTeams(filter) {
       </div>`;
     draftTeams.innerHTML = html;
     feather.replace({ "aria-hidden": "true" });
+  } else {
+    draftTeams.innerHTML = "";
   }
 }
 
@@ -209,6 +211,7 @@ function clearTeams() {
         person.picked = false;
       }
       tourney.people.teams = {};
+      currentTeam = {};
       await savePeople();
       reload();
     }
@@ -229,7 +232,6 @@ async function editTeam(teamKey) {
   for (let member in currentTeam) {
     tourney.people.og[member].picked = true;
     member = currentTeam[member];
-    console.log(member);
     member.picked = true;
   }
   fillCurrentTeam();

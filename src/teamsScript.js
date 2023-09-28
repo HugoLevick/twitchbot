@@ -88,7 +88,7 @@ async function randomizeTeams() {
   peoplePerTeam = teamsOf;
 
   if (teamsOf > checked) {
-    Swal.fire("Too many players", "There aren't enough people to fill a team", "error");
+    Swal.fire("Too little players", "There aren't enough people to fill a team", "error");
   } else {
     Swal.fire({
       title: "Are you sure?",

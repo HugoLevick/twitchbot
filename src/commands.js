@@ -3,6 +3,32 @@ import Command from "./commandClass.js";
 import { addToTourney, queryDatabase } from "./bot.js";
 import { addToSubs, removeFromSubs } from "./httpServer.js";
 
+const checkIn = async (ctx, { client, target, checkInsAllowed, functions, params }) => {
+  let username = ctx.username;
+  let modIn = false;
+  if (params[0] && functions.isModOrOwner(ctx)) {
+    username = params.join(" ").replace(/@/g, "");
+    modIn = true;
+  }
+  if ((checkInsAllowed && upcomingT[0]) || modIn) {
+    const nextT = upcomingT[0];
+    const res = await functions.check(nextT.id, username, "in");
+    if (res) {
+      client.say(target, `@${username} checked In!${modIn ? ` by request of ${ctx.username}` : ""} ${process.env.HYPE_EMOTE}`);
+      console.log(`${username} checked in`);
+    } else {
+      client.say(target, `@${username} wasnt in the tourney`);
+      console.log(username, "wasnt in the tourney and tried to check in");
+    }
+  } else if (upcomingT[0]) {
+    client.say(target, `@${username} check-ins are disabled`);
+    console.log(username, "tried to check in (disabled)");
+  } else {
+    client.say(target, `@${username} there aren't any tourneys open for registration`);
+    console.log(username, "Tried to check in tourney, there's any");
+  }
+};
+
 const commands = [
   new Command("!jointourney", "", "action", async ({ username }, { params, client, target }) => {
     const nextT = upcomingT[0];
@@ -38,10 +64,10 @@ const commands = [
     }
     if (res[0]) {
       if (nextT.mode === "solos" || nextT.mode === "draft") {
-        client.say(target, `@${username} joined the tourney! elvyncHype`);
+        client.say(target, `@${username} joined the tourney! ${process.env.HYPE_EMOTE}`);
         console.log(`${username} joined the tourney`);
       } else {
-        client.say(target, `${teamName} joined the tourney! elvyncHype`);
+        client.say(target, `${teamName} joined the tourney! ${process.env.HYPE_EMOTE}`);
         console.log(`${teamName} joined the tourney, captain: ${username}`);
       }
     } else {
@@ -63,7 +89,7 @@ const commands = [
           console.log(username + " tried to sign a team up, name was too long (>10 ch)");
           break;
         case "normal":
-          client.say(target, `@${username} is already in the tourney elvyncServingLs`);
+          client.say(target, `@${username} is already in the tourney ${process.env.NEGATIVE_EMOTE}`);
           console.log(username, "was already in the tourney");
           break;
         default:
@@ -79,7 +105,7 @@ const commands = [
       let res = false;
       res = await functions.removeFromTourney(username, nextT.id);
       if (res[0]) {
-        client.say(target, `${res[1] === username ? "@" : ""}${res[1]} left the tourney! elvyncServingLs`);
+        client.say(target, `${res[1] === username ? "@" : ""}${res[1]} left the tourney! ${process.env.NEGATIVE_EMOTE}`);
         console.log(`${res[1]} left the tourney`);
       } else {
         switch (res[1]) {
@@ -101,53 +127,21 @@ const commands = [
       console.log(`${username} tried to join a tourney when there wasnt one`);
     }
   }),
-  new Command("!in", "", "action", async (ctx, { client, target, checkInsAllowed, functions, params }) => {
-    if (checkInsAllowed && upcomingT[0]) {
-      let username = "";
-      if (params[0] && functions.isModOrOwner(ctx)) username = params[0].replace(/@/g, "");
-      else username = ctx.username;
-      console.log(username, params[0]);
-      const nextT = upcomingT[0];
-      const res = await functions.check(nextT.id, username, "in");
-      if (res) {
-        client.say(target, `@${username} checked In! elvyncHype`);
-        console.log(`${username} checked in`);
-      } else {
-        client.say(target, `@${username} wasnt in the tourney`);
-        console.log(username, "wasnt in the tourney and tried to check in");
-      }
-    } else if (upcomingT[0]) {
-      client.say(target, `@${username} check-ins are disabled`);
-      console.log(username, "tried to check in (disabled)");
-    } else {
-      client.say(target, `@${username} there aren't any tourneys open for registration`);
-      console.log(username, "Tried to check in tourney, there's any");
-    }
-  }),
-  new Command("!checkin", "", "action", async (ctx, { client, target, params, functions }) => {
-    if (functions.isModOrOwner(ctx)) {
-      const nextT = upcomingT[0];
-      const username = params[0].replace("@", "");
-      const res = await functions.check(nextT.id, username, "in");
-      if (res) {
-        client.say(target, `@${username} checked In! elvyncHype`);
-        console.log(`${username} checked in by request of ${ctx.username}`);
-      } else {
-        client.say(target, `@${ctx.username} user ${username} wasnt in the tourney`);
-        console.log(username, "wasnt in the tourney and tried to check in by request of " + ctx.username);
-      }
-    }
-  }),
+  new Command("!in", "", "action", checkIn),
+  new Command("!checkin", "", "action", checkIn),
   new Command("!checkout", "", "action", async (ctx, { client, target, params, functions }) => {
     if (functions.isModOrOwner(ctx)) {
       const nextT = upcomingT[0];
-      const username = params[0].replace("@", "");
+      let username;
+
+      if (functions.isModOrOwner(ctx) && params[0]) username = params[0].replace("@", "");
+      else username = ctx.username;
       const res = await functions.check(nextT.id, username, "out");
       if (res) {
-        client.say(target, `@${username} checked out! elvyncServingLs`);
-        console.log(`${username} checked in by request of ${ctx.username}`);
+        client.say(target, `@${username} checked out! ${process.env.SAD_EMOTE}`);
+        console.log(`${username} checked out by request of ${ctx.username}`);
       } else {
-        client.say(target, `@${ctx.username} user ${username} wasnt in the tourney`);
+        client.say(target, `@${username} wasnt in the tourney`);
         console.log(username, "wasnt in the tourney and tried to check out by request of " + ctx.username);
       }
     }
@@ -250,14 +244,14 @@ const commands = [
     return addToSubs(username, "0", nextT.id)
       .then((res) => {
         if (res[0]) {
-          client.say(target, `@${username} was added as a sub KomodoHype`);
+          client.say(target, `@${username} was added as a sub ${process.env.HYPE_EMOTE}`);
           console.log(`${username} joined the sub list`);
         }
       })
       .catch((err) => {
         switch (err[1]) {
           case "already-in":
-            client.say(target, `@${username} is already a sub elvyncServingLs`);
+            client.say(target, `@${username} is already a sub ${process.env.NEGATIVE_EMOTE}`);
             console.log(username, "is already in and tried to join sub list");
             break;
           case "banned":
@@ -276,14 +270,14 @@ const commands = [
     return removeFromSubs(username, nextT.id)
       .then((res) => {
         if (res[0]) {
-          client.say(target, `@${username} left the sub list! BibleThump`);
+          client.say(target, `@${username} left the sub list! ${process.env.SAD_EMOTE}`);
           console.log(`${username} left the sub list`);
         }
       })
       .catch((err) => {
         switch (err[1]) {
           case "not-in":
-            client.say(target, `@${username} is not in the sub list elvyncServingLs`);
+            client.say(target, `@${username} is not in the sub list ${process.env.NEGATIVE_EMOTE}`);
             console.log(username, "is not in the sub list");
             break;
           case "unexpected":
@@ -327,8 +321,22 @@ const commands = [
     }
   }),
 
-  new Command("!henzzito", "", "action", ({}, { client, target }) => {
-    client.say(target, `Henzzito is the first twitch bot developed by @h_levick`);
+  new Command("!clearalerts", "", "action", async (ctx, { client, target, functions }) => {
+    if (functions.isModOrOwner(ctx)) {
+      clearAlerts();
+      client.say(target, `@${ctx.username} alert list cleared!`);
+      console.log(`${ctx.username} cleared the alert list`);
+    }
+  }),
+
+  new Command("!bracket", "", "action", async ({}, { client, target }) => {
+    const nextT = upcomingT[0];
+    if (nextT.link) client.say(target, nextT.link);
+    return;
+  }),
+
+  new Command("!tourneybot", "", "action", ({}, { client, target }) => {
+    client.say(target, `TourneyBot is the first twitch bot developed by @h_levick. Twitter: @hlevickh, Discord: @levick.`);
   }),
 ];
 
@@ -336,4 +344,8 @@ export default commands;
 
 export function addAlert(username, message) {
   queryDatabase(`INSERT INTO alerts (username, content) VALUES ('${username}', '${message}')`);
+}
+
+export function clearAlerts() {
+  queryDatabase(`UPDATE alerts SET acknowledged = 1`);
 }

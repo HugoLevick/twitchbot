@@ -10,7 +10,7 @@ const alert = (message, type) => {
     "</div>",
   ].join("");
 
-  alertPlaceholder.append(wrapper);
+  alertPlaceholder.appendChild(wrapper);
 };
 
 function timeout(ms) {
@@ -25,7 +25,6 @@ function showAlerts() {
   fetch(`/alerts/`)
     .then((res) => res.json())
     .then(async (alerts) => {
-      console.log(alerts);
       if (alerts.length > 0) {
         displayingAlert = true;
         a = alerts[0];

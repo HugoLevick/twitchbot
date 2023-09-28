@@ -14,9 +14,13 @@ fetch("/tourneys/" + params.id)
   .then((res) => res.json())
   .then(([t]) => {
     tourney = t;
+    console.log(tourney);
     form.tourneyName.innerHTML = tourney.name;
-    form.startDate.value = tourney.start.replace(/:[0-9][0-9].[0-9][0-9][0-9]-[0-9][0-9]:[0-9][0-9]/, "");
-    form.endDate.value = tourney.finish.replace(/:[0-9][0-9].[0-9][0-9][0-9]-[0-9][0-9]:[0-9][0-9]/, "");
+    //form.startDate.value = tourney.start.replace(/:[0-9][0-9].[0-9][0-9][0-9]-[0-9][0-9]:[0-9][0-9]/, "");
+    console.log(new Date(tourney.start).toISOString().substring(0, 16));
+    form.startDate.value = getLocalDate(tourney.start);
+    //form.endDate.value = tourney.finish.replace(/:[0-9][0-9].[0-9][0-9][0-9]-[0-9][0-9]:[0-9][0-9]/, "");
+    form.endDate.value = getLocalDate(tourney.finish);
     if (tourney.prize === "no") {
       form.tourneyPrize.value = 0;
     } else {
@@ -83,6 +87,14 @@ function handleChange(value) {
 
   span.innerHTML = desc;
 }
+
+//Handle input dates
+const offset = new Date().getTimezoneOffset() * 1000 * 60;
+const getLocalDate = (value) => {
+  const offsetDate = new Date(value).valueOf() - offset;
+  const date = new Date(offsetDate).toISOString();
+  return date.substring(0, 16);
+};
 
 function toggleEntry(checked) {
   const inputEntry = document.getElementById("entryFee");

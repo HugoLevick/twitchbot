@@ -204,6 +204,34 @@ async function ban(username) {
   });
 }
 
+async function test() {
+  for (let i = 0; i < 64; i++) {
+    await fetch("/people", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "player " + i,
+        id: tourney.id,
+        tier: i > 31 ? 1 : 0,
+      }),
+    });
+
+    await fetch(`/check/${tourney.id}/`, {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ check: "in", username: "player " + i }),
+    });
+  }
+  reload();
+  Swal.fire("Test started", "", "success");
+}
+
 async function addToTourney() {
   if (tourney) {
     //If there is a tourney selected
@@ -257,7 +285,7 @@ async function addToTourney() {
                 .then((res) => res.json())
                 .then((res) => {
                   if (res[0]) {
-                    Swal.fire("Person added", "", "success");
+                    //Swal.fire("Person added", "", "success");
                     reload();
                   } else {
                     Swal.fire("Couldn't add person", "They might be already in the tourney", "error");
@@ -282,7 +310,7 @@ async function addToTourney() {
                 .then((res) => res.json())
                 .then((res) => {
                   if (res[0]) {
-                    Swal.fire("Person added", "", "success");
+                    //Swal.fire("Person added", "", "success");
                     reload();
                   } else {
                     Swal.fire("Couldn't add person", "They might be already in the tourney", "error");

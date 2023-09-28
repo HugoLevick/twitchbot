@@ -1,0 +1,47 @@
+<script>
+  let params = {};
+  new URL(window.location.href).searchParams.forEach((x, y) => {
+    params[y] = x;
+  });
+  if (params.error) {
+    if (params.error === "access_denied") window.location.href = "/managetourneys?error=Access denied by the user";
+    else window.location.href = "/managetourneys?error=An unexpected error occurred";
+  }
+
+  if (!params.code)
+    window.location.href = "/managetourneys?error=An unexpected error occurred, send this information to the developer: " + params;
+
+  var formdata = new FormData();
+  formdata.append("code", params.code);
+  formdata.append("client_id", "bdde3fb0a08a807b58fd73f603780a4457cd14702cba051cce75b84ab5944eb4");
+  formdata.append("grant_type", "authorization_code");
+  formdata.append("redirect_uri", "http://localhost:3000/challonge_auth");
+
+  var requestOptions = {
+    method: "POST",
+    body: formdata,
+    redirect: "follow",
+  };
+
+  fetch("https://api.challonge.com/oauth/token", requestOptions)
+    .then((response) => {
+      if (response.status == 200) return response.json();
+      else {
+        throw new Error("Couldn't link your account. " + response.text());
+      }
+    })
+    .then((result) => {
+      localStorage.setItem("challongeToken", result.access_token);
+      localStorage.setItem("challongeRefresh", result.refresh_token);
+      //Unix timestamp needs to be in miliseconds to compare to Date.now
+      const expires_at = (result.created_at + result.expires_in) * 1000;
+      localStorage.setItem("challongeExpires", expires_at);
+      window.location.href = "/managetourneys?message=You linked your Challonge account!";
+    })
+    .catch((error) => {
+      localStorage.removeItem("challongeToken");
+      localStorage.removeItem("challongeRefresh");
+      localStorage.removeItem("challongeExpires");
+      window.location.href = "/managetourneys?error=" + error;
+    });
+</script>
